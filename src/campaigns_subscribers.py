@@ -37,12 +37,12 @@ ENDPOINT_KEY = {
 }
 
 MIN_PAGES = 1
-MAX_PAGES = 20000
-LIMIT = 500
+MAX_PAGES = 1
+LIMIT = 250
 AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 
 # Mobile Commons API allows up to 160 concurrent connections but they asked us to reduce to 80 for now
-SEMAPHORE = asyncio.BoundedSemaphore(80)
+SEMAPHORE = asyncio.BoundedSemaphore(40)
 
 retries = Retry(total=3, status_forcelist=[429, 500, 502, 503, 504], backoff_factor=1)
 retry_adapter = HTTPAdapter(max_retries=retries)

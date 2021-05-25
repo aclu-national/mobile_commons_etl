@@ -47,7 +47,7 @@ ENDPOINT_KEY = {
 }
 
 MIN_PAGES = 1
-MAX_PAGES = 20000
+MAX_PAGES = 1
 LIMIT = 250
 AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 
