@@ -98,6 +98,8 @@ def main():
         tap.load(df, index)
 
         indices = set(data["id"])
+        # have to manually exclude some campaigns for speed
+        indices = [str(ix) for ix in indices if str(ix) in ['738274','738386','716029']]
         index_results = []
 
         for i in indices:
