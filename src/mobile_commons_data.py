@@ -84,7 +84,7 @@ class columns:
         		"type" : "str",
         		"body" : "str",
         		"campaign" : "str",
-        		"campaign_id": "float64",
+        		"campaign_id": "str",
         		"message_template_id" : "float64",
         		"mms"  : "bool",
         		"multipart" : "bool",
