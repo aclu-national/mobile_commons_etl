@@ -89,7 +89,7 @@ class mobile_commons_connection:
         url = f"{self.base}{self.endpoint}"
         print(f"Fetching page {page}")
 
-        TIMEOUT = aiohttp.ClientTimeout(total=720)
+        TIMEOUT = aiohttp.ClientTimeout(total=85*85)
 
         attempts = 1
         data = None
