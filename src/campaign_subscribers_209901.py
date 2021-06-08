@@ -29,12 +29,7 @@ ALL_ENDPOINTS = ["campaign_subscribers"]
 INDEX_SET = {"campaigns": "campaign_id"}
 
 RS_INCREMENTAL_KEYS = {"campaign_subscribers": "activated_at", "campaigns": None}
-#RS_INCREMENTAL_KEYS is "activated_at" which is the timestamp we're using in campaign_subscribers to determine from when we should increment
-#then it is passed into sql that queries the table within the func get_latest_record. Then the returned result is passed into the handler fetch_latest_timestamp
 API_INCREMENTAL_KEYS = {"campaign_subscribers": "from", "campaigns": None}
-#then within get_page API_INCREMENTAL_KEYS is set equal to the latest timestamp which is whats returned from fetch_latest_timestamp
-#and it becomes the from parameter that is passed when making the api call in get_page
-UP_TO = {"campaign_subscribers": "to"}
 
 ENDPOINT_KEY = {
     1: {"campaigns": "campaigns", "campaign_subscribers": "subscriptions"},
@@ -42,7 +37,7 @@ ENDPOINT_KEY = {
 }
 
 MIN_PAGES = 1
-MAX_PAGES = 20000
+MAX_PAGES = 200
 LIMIT = 500
 AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 
@@ -80,8 +75,8 @@ def main():
         }
 
         tap = mc.mobile_commons_connection(index, full_build, **keywords)
-        tap.fetch_latest_timestamp() #result: gets the latest timestamp in RS for this call // fetch_latest_timestamp calls on get_latest_record
-        tap.page_count = tap.page_count_get(**keywords, page=MIN_PAGES) #makes a call to see how many pages there are and returns the value.
+        tap.fetch_latest_timestamp()
+        tap.page_count = tap.page_count_get(**keywords, page=MIN_PAGES)
 
         print(
             "Kicking off extraction for endpoint {}...".format(str.upper(index)),
@@ -90,9 +85,6 @@ def main():
         )
 
         data = tap.ping_endpoint(**keywords)
-        #if page count is greater than 500, it will find break up the total # of pages into chunks & make the calls a chunk at a time.
-        #so if there are 1858 pages & it calculates that 4 chunks us ideal then the overall partition will look like [1, 620, 1239, 1859].
-        #calls on get_page which makes the async calls & attempts retries if necessary
         template = pd.DataFrame(columns=tap.columns)
         df = pd.concat([template, data], sort=True, join="inner")
 
@@ -106,8 +98,7 @@ def main():
 
         indices = set(data["id"])
         # have to manually exclude the master campaign for outgoing messages endpoint bc it's too damn slow
-        indices = [str(ix) for ix in indices if str(ix) == "209901"]
-        #and str(ix) != "210789"]
+        indices = [str(ix) for ix in indices if str(ix) == "209901" ]
         index_results = []
 
         for i in indices:
@@ -125,10 +116,8 @@ def main():
                 extrakeys = {
                     "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT],
                     "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
-                    "up_to" : UP_TO[ENDPOINT],
-                    INDEX_SET[index]: i
+                    INDEX_SET[index]: i,
                 }
-                print(extrakeys)
 
                 subkeywords = keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
@@ -154,6 +143,7 @@ def main():
                             subtap.page_count, str.upper(ENDPOINT), i
                         )
                     )
+                    print(keywords)
 
                     data = subtap.ping_endpoint(**keywords)
                     template = pd.DataFrame(columns=subtap.columns)

@@ -51,6 +51,7 @@ class mobile_commons_connection:
         self.index = None
         self.index_id = self.group_id or self.url_id or self.campaign_id
         self.db_incremental_key = kwargs.get("db_incremental_key", None)
+        self.up_to = kwargs.get("up_to", None)
         self.schema = kwargs.get("schema", "public")
         self.table_prefix = kwargs.get("table_prefix", "")
         self.sql_engine = create_engine(
@@ -66,10 +67,11 @@ class mobile_commons_connection:
             + DB_DATABASE
         )
 
-    async def get_page(self, page, retries=5, **kwargs):
+    async def get_page(self, retries=5, **kwargs): #page
         """Base asynchronous request function"""
 
-        params = {"page": page}
+        #params = {"page": page}
+        params = {}
 
         if self.group_id is not None:
             params["group_id"] = self.group_id
@@ -78,7 +80,8 @@ class mobile_commons_connection:
             params["campaign_id"] = self.campaign_id
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None) & (~self.full_build):
-            params[self.api_incremental_key] = self.last_timestamp
+            params[self.api_incremental_key] = self.last_timestamp #from
+            params[self.up_to] = self.last_timestamp + timedelta(days=30) #to
 
         if self.url_id is not None:
             params["url_id"] = self.url_id
@@ -87,7 +90,8 @@ class mobile_commons_connection:
             params["limit"] = self.limit
 
         url = f"{self.base}{self.endpoint}"
-        print(f"Fetching page {page}")
+        #print(f"Fetching page {page}")
+        print(f"Fetching records from {self.api_incremental_key} until {self.up_to}")
 
         TIMEOUT = aiohttp.ClientTimeout(total=85*85)
 
@@ -114,8 +118,32 @@ class mobile_commons_connection:
     def ping_endpoint(self, **kwargs):
         """Wrapper for asynchronous calls that then have results collated into a dataframe"""
 
-        loop = asyncio.get_event_loop()
+        #loop = asyncio.get_event_loop()
+        #res = []
 
+        #if the difference in days btwn the last timestamp in RS & today is greater than 30 days then sync records a month at a time until we reach
+        #todays date
+        #if its less than 30, sync all records since last timstamp
+        if (datetime.today - self.last_timestamp) > 30:
+
+            partition_size = (datetime.today - self.last_timestamp)/30
+
+            breaks = [
+                int(n)
+                for n in np.linspace(1, self.page_count + 1, partition_size).tolist()
+            ]
+
+            temp = loop.run_until_complete(
+                asyncio.gather(
+                    *(
+                        self.get_page(**kwargs)
+                        #somehow page is being passed into the line 145 even though its not before it
+                    )
+                )
+            )
+            res += temp
+
+        '''
         # Chunks async calls into bundles if page count is greater than 500
 
         if self.page_count > 500:
@@ -139,12 +167,12 @@ class mobile_commons_connection:
                 asyncio.gather(
                     *(
                         self.get_page(page, **kwargs)
-                        for page in range(breaks[b - 1], breaks[b])
+                        for page in range(breaks[b - 1], breaks[b]) #somehow page is being passed into the line 145 even though its not before it
                     )
                 )
             )
             res += temp
-
+        '''
         endpoint_key_0 = self.endpoint_key[0][self.endpoint]
         endpoint_key_1 = self.endpoint_key[1][self.endpoint]
 
@@ -323,6 +351,7 @@ class mobile_commons_connection:
         x = set(df.columns)
         y = set(self.columns.keys())
         final_cols = {i: self.columns[i] for i in x.intersection(y)}
+        print(final_cols)
         df = df.astype(final_cols)
 
         if self.full_build:
