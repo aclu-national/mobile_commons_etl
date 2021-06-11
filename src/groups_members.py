@@ -115,6 +115,7 @@ def main():
                 extrakeys = {
                     "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT],
                     "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
+                    "up_to" : UP_TO[ENDPOINT],
                     INDEX_SET[index]: i,
                 }
 

@@ -123,14 +123,13 @@ def main():
                     full_build = False
 
                 extrakeys = {
-                    "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT],
-                    "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
+                    "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT], #from
+                    "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT], #activated_at
                     "up_to" : UP_TO[ENDPOINT],
                     INDEX_SET[index]: i
                 }
-                print(extrakeys)
 
-                subkeywords = keywords.update(extrakeys)
+                keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
                 subtap.fetch_latest_timestamp()
