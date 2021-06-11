@@ -105,8 +105,7 @@ def main():
         tap.load(df, index)
 
         indices = set(data["id"])
-        # have to manually exclude the master campaign for outgoing messages endpoint bc it's too damn slow
-        indices = [str(ix) for ix in indices if str(ix) == "209901"]
+        #indices = [str(ix) for ix in indices if str(ix) == "209901"]
         #and str(ix) != "210789"]
         index_results = []
 
