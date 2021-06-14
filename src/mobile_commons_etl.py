@@ -207,7 +207,7 @@ class mobile_commons_connection:
 
         ins = inspect(self.sql_engine)
 
-        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers"]):
+        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers","sent_messages","messages","group_members"]):
             sql = "select to_timestamp('2020-10-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
             date = pd.read_sql(sql, self.sql_engine)
         else:
@@ -259,6 +259,21 @@ class mobile_commons_connection:
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None):
             params[self.api_incremental_key] = self.last_timestamp #from
+
+            if params[self.api_incremental_key] != datetime.strptime("2020-10-01 00:00:00+00:00", '%Y-%m-%d %H:%M:%S%z'):
+                sql = (
+                    """select to_timestamp(dateadd(s,1,'"""
+                    + self.last_timestamp
+                    + """'::timestamp),'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"""
+                )
+                date = pd.read_sql(sql, self.sql_engine)
+                parsed_date = str(date["latest_date"][0])
+                utc = pytz.timezone("UTC")
+                dateparser.parse(parsed_date).astimezone(utc).isoformat()
+
+                params[self.api_incremental_key] = parsed_date
+                self.last_timestamp = parsed_date
+
             last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
             up_to_date = last_timestamp_datetime + timedelta(days=30) #to
             params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
