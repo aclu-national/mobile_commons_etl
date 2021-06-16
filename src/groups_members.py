@@ -31,7 +31,7 @@ INDEX_SET = {"groups": "group_id"}
 
 RS_INCREMENTAL_KEYS = {"group_members": "updated_at", "groups": None}
 API_INCREMENTAL_KEYS = {"group_members": "from", "groups": None}
-
+UP_TO = {"group_members": "to"}
 ENDPOINT_KEY = {
     1: {"groups": "groups", "group_members": "group"},
     0: {"groups": "group", "group_members": "profile"},
@@ -98,6 +98,7 @@ def main():
         tap.load(df, index)
 
         indices = set(data["id"])
+        #indices = [str(ix) for ix in indices if str(ix) == "738422"]
         index_results = []
 
         for i in indices:

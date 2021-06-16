@@ -54,7 +54,7 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
-
+INCLUDE_OPT_IN_PATHS = 1
 
 def main():
 
@@ -77,6 +77,7 @@ def main():
             "table_prefix": TABLE_PREFIX,
             "auth": AUTH,
             "db_incremental_key": RS_INCREMENTAL_KEYS[index],
+            "include_opt_in_paths":INCLUDE_OPT_IN_PATHS,
         }
 
         tap = mc.mobile_commons_connection(index, full_build, **keywords)

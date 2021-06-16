@@ -47,7 +47,8 @@ class columns:
         		"name" : "str",
         		"active" : "bool",
         		"description" : "str" ,
-        		"tags" : "str"
+        		"tags" : "str",
+                "opt_in_paths":"str"
         	},
 
         	"campaign_subscribers": {
@@ -91,7 +92,7 @@ class columns:
         		"next_id" : "str",
         		"phone_number" : "str",
         		"previous_id" : "str",
-        		"profile" : "float64",
+        		"profile" : "str",
         		"sent_at" : "datetime64[ns, UTC]"
         	},
 

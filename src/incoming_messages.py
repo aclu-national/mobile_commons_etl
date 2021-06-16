@@ -41,6 +41,8 @@ API_INCREMENTAL_KEYS = {
     "messages": "start_time",
 }
 
+UP_TO = {"messages": "end_time"}
+
 ENDPOINT_KEY = {
     1: {"campaigns": "campaigns", "sent_messages": "messages", "messages": "messages"},
     0: {"campaigns": "campaign", "sent_messages": "message", "messages": "message"},
@@ -59,6 +61,7 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
+INCLUDE_OPT_IN_PATHS = 1
 
 def main():
 
@@ -84,6 +87,7 @@ def main():
             "schema": SCHEMA,
             "table_prefix": TABLE_PREFIX,
             "db_incremental_key": RS_INCREMENTAL_KEYS[index],
+            "include_opt_in_paths":INCLUDE_OPT_IN_PATHS,
         }
 
         tap = mc.mobile_commons_connection(index, full_build, **keywords)
@@ -108,6 +112,7 @@ def main():
 
         tap.load(df, index)
         indices = set(data["id"])
+        #indices = [str(ix) for ix in indices if str(ix) == "209901"]
         index_results = []
 
         for i in indices:

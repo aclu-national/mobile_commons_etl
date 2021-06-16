@@ -56,6 +56,10 @@ class mobile_commons_connection:
         self.index_id = self.group_id or self.url_id or self.campaign_id
         self.db_incremental_key = kwargs.get("db_incremental_key", None)
         self.up_to = kwargs.get("up_to", None)
+        self.include_opt_in_paths = kwargs.get("include_opt_in_paths", None)
+        #used in campaigns.py
+        self.include_profile = kwargs.get("include_profile", None)
+        #used in outgoing_messages.py
         self.schema = kwargs.get("schema", "public")
         self.table_prefix = kwargs.get("table_prefix", "")
         self.sql_engine = create_engine(
@@ -75,7 +79,12 @@ class mobile_commons_connection:
     async def get_page(self, page, retries=5, **kwargs):
         """Base asynchronous request function"""
 
-        params = {"page": page}
+        if self.endpoint == "campaigns":
+            params = {"page": page, "include_opt_in_paths": kwargs["include_opt_in_paths"]}
+        elif self.endpoint == "sent_messages":
+            params = {"page": page, "include_profile": kwargs["include_profile"]}
+        else:
+            params = {"page": page} # page here is page number
 
         if self.group_id is not None:
             params["group_id"] = self.group_id
@@ -180,6 +189,8 @@ class mobile_commons_connection:
             c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
             for c in df_agg.columns
         ]
+        #print(df_agg.columns)
+        #print(self.columns.keys())
         df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
         return df_agg
 
@@ -208,19 +219,33 @@ class mobile_commons_connection:
         ins = inspect(self.sql_engine)
 
         if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers","sent_messages","messages","group_members"]):
-            sql = "select to_timestamp('2020-10-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
-            date = pd.read_sql(sql, self.sql_engine)
+            first_record_sql = "select to_timestamp('2020-10-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
+            date = pd.read_sql(first_record_sql, self.sql_engine)
         else:
+            date_for_last_record = pd.read_sql(sql, self.sql_engine)
+            latest_date = self.parse_datetime(date_for_last_record,"latest_date")
+            sql = (
+                """select to_timestamp(dateadd(s,1,'"""
+                + latest_date
+                + """'::timestamp),'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"""
+            )
             date = pd.read_sql(sql, self.sql_engine)
 
         if (date.shape[0] > 0) & (date["latest_date"][0] is not None):
-            latest_date = str(date["latest_date"][0])
-            utc = pytz.timezone("UTC")
-            dateparser.parse(latest_date).astimezone(utc).isoformat()
+            latest_date = self.parse_datetime(date,"latest_date")
         else:
             latest_date = None
 
+        print(f"Grabbing records starting from: {latest_date} up to 30 days after.")
+        #latest_date here is already one second plus the activated_at timestamp of the last record uploaded in the previous upload.
+        #if there was no prior upload then its the hardocded value of 2020-10-01 00:00:00+00:00
         return latest_date
+
+    def parse_datetime(self,df,item_to_parse):
+        date = str(df[item_to_parse][0])
+        utc = pytz.timezone("UTC")
+        dateparser.parse(date).astimezone(utc).isoformat()
+        return date
 
     def fetch_latest_timestamp(self):
         """Handler for pulling latest record if incremental build"""
@@ -235,7 +260,8 @@ class mobile_commons_connection:
                 file=sys.stdout,
             )
             self.last_timestamp = self.get_latest_record(self.endpoint)
-            print(f"Latest timestamp: {self.last_timestamp}")
+            #print(f"Latest timestamp: {self.last_timestamp}")
+            #this is where we used to display the latest timestamp for incremental build
 
         else:
             self.last_timestamp = None
@@ -252,28 +278,18 @@ class mobile_commons_connection:
         endpoint_key_0 = self.endpoint_key[0][self.endpoint]
         endpoint_key_1 = self.endpoint_key[1][self.endpoint]
 
-        params = {"page": page} # page here is page number
+        if self.endpoint == "campaigns":
+            params = {"page": page, "include_opt_in_paths": kwargs["include_opt_in_paths"]}
+        elif self.endpoint == "sent_messages":
+            params = {"page": page, "include_profile": kwargs["include_profile"]}
+        else:
+            params = {"page": page} # page here is page number
 
         if self.limit is not None:
             params["limit"] = self.limit
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None):
             params[self.api_incremental_key] = self.last_timestamp #from
-
-            if params[self.api_incremental_key] != datetime.strptime("2020-10-01 00:00:00+00:00", '%Y-%m-%d %H:%M:%S%z'):
-                sql = (
-                    """select to_timestamp(dateadd(s,1,'"""
-                    + self.last_timestamp
-                    + """'::timestamp),'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"""
-                )
-                date = pd.read_sql(sql, self.sql_engine)
-                parsed_date = str(date["latest_date"][0])
-                utc = pytz.timezone("UTC")
-                dateparser.parse(parsed_date).astimezone(utc).isoformat()
-
-                params[self.api_incremental_key] = parsed_date
-                self.last_timestamp = parsed_date
-
             last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
             up_to_date = last_timestamp_datetime + timedelta(days=30) #to
             params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
@@ -297,14 +313,17 @@ class mobile_commons_connection:
             "response"
         ][endpoint_key_1]
 
+        '''
         ### Sina: 7/20/20 only broadcasts, messages, & sent_messages endpoints have page_count field this at this point in time
         if formatted_response.get("@page_count") is not None:
             num_results = int(formatted_response.get("@page_count"))
 
         elif formatted_response.get("page_count") is not None:
             num_results = int(formatted_response.get("page_count"))
-
-        elif formatted_response.get(endpoint_key_0) is not None:
+        '''
+        #commented this out because for the calls that do have page_count in their headers it was grabbing it and using that to determine how many pages to iterate through
+        #we want it to use the timerange to determine how many pages so its 30 days of data increments
+        if formatted_response.get(endpoint_key_0) is not None:
             num_results = 1
 
         else:
