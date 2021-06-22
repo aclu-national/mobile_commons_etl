@@ -29,8 +29,10 @@ ALL_ENDPOINTS = ["campaign_subscribers"]
 INDEX_SET = {"campaigns": "campaign_id"}
 
 RS_INCREMENTAL_KEYS = {"campaign_subscribers": "activated_at", "campaigns": None}
-#RS_INCREMENTAL_KEYS is "activated_at" which is the timestamp we're using in campaign_subscribers to determine from when we should increment
-#then it is passed into sql that queries the table within the func get_latest_record. Then the returned result is passed into the handler fetch_latest_timestamp
+#RS_INCREMENTAL_KEYS is "activated_at" which is the timestamp used by campaign_subscribers to determine from when we should increment
+#then it is passed into sql that queries the table within the func get_latest_record. Within that same function we did handling to to take the max of both activated_at & opted_out at since the
+#call prioritizes opted_out_at before activated_at
+#Then the returned result is passed into the handler fetch_latest_timestamp
 API_INCREMENTAL_KEYS = {"campaign_subscribers": "from", "campaigns": None}
 #then within get_page API_INCREMENTAL_KEYS is set equal to the latest timestamp which is whats returned from fetch_latest_timestamp
 #and it becomes the from parameter that is passed when making the api call in get_page
@@ -55,6 +57,7 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
 INCLUDE_OPT_IN_PATHS = 1
+IGNORE_INDEX_FILTER = True
 
 def main():
 
@@ -81,8 +84,8 @@ def main():
         }
 
         tap = mc.mobile_commons_connection(index, full_build, **keywords)
-        tap.fetch_latest_timestamp() #result: gets the latest timestamp in RS for this call // fetch_latest_timestamp calls on get_latest_record
-        tap.page_count = tap.page_count_get(**keywords, page=MIN_PAGES) #makes a call to see how many pages there are and returns the value.
+        tap.fetch_latest_timestamp() #result: gets the latest timestamp in RS for this call
+        tap.page_count = tap.page_count_get(**keywords, page=MIN_PAGES) #makes a call to see how many pages there are and returns the value
 
         print(
             "Kicking off extraction for endpoint {}...".format(str.upper(index)),
@@ -106,7 +109,7 @@ def main():
         tap.load(df, index)
 
         indices = set(data["id"])
-        #indices = [str(ix) for ix in indices if str(ix) == "209901"]
+        #indices = [str(ix) for ix in indices if str(ix) == "211038"]
         #and str(ix) != "210789"]
         index_results = []
 
@@ -132,7 +135,10 @@ def main():
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp()
+                subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
+                #passing the ignore_index_filter argument so that we can take
+                #the max of activated_at from the all the campaign subscriber
+                #records (not just for each campaign as it was doing before)
 
                 print(
                     "Kicking off extraction for endpoint {} CAMPAIGN {}...".format(
