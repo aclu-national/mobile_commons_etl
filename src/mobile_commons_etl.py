@@ -58,7 +58,7 @@ class mobile_commons_connection:
         self.db_incremental_key = kwargs.get("db_incremental_key", None)
         self.up_to = kwargs.get("up_to", None)
         self.include_opt_in_paths = kwargs.get("include_opt_in_paths", None)
-        #used in campaigns.py
+        #used in campaigns.py & anything that calls the campaign endpoint
         self.include_profile = kwargs.get("include_profile", None)
         #used in outgoing_messages.py
         self.schema = kwargs.get("schema", "public")
@@ -94,10 +94,16 @@ class mobile_commons_connection:
             params["campaign_id"] = self.campaign_id
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None) & (~self.full_build):
-            params[self.api_incremental_key] = self.last_timestamp #from
-            last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-            up_to_date = last_timestamp_datetime + timedelta(days=30) #to
-            params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
+            if self.endpoint == "sent_messages":
+                params[self.api_incremental_key] = self.last_timestamp #from
+                last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
+                up_to_date = last_timestamp_datetime + timedelta(days=1) #to
+                params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
+            else:
+                params[self.api_incremental_key] = self.last_timestamp #from
+                last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
+                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
+                params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
 
         if self.url_id is not None:
             params["url_id"] = self.url_id
@@ -224,7 +230,7 @@ class mobile_commons_connection:
             first_record_sql = "select to_timestamp('2020-10-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
             date = pd.read_sql(first_record_sql, self.sql_engine)
             latest_date = self.parse_datetime(date,"latest_date")
-            print(f"Grabbing records starting from: {latest_date} up to 30 days after.")
+            print(f"Grabbing records starting from {latest_date}.")
 
         #if the endpoint is campaign_subscribers and the table exists, then take the max of both activated_at and opted_out_at
         elif (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == True) & (self.endpoint == "campaign_subscribers"):
@@ -241,11 +247,10 @@ class mobile_commons_connection:
 
             date = pd.read_sql(sql, self.sql_engine)
             latest_date = self.parse_datetime(date,"latest_date")
-            print(f"Grabbing records starting from: {latest_date} up to 30 days after.")
+            print(f"Grabbing records starting from {latest_date}.")
 
         #take the max of the datetime column we're using to increment and add a second to the that datetime so we avoid dupes
         else:
-            print(sql)
             date_for_last_record = pd.read_sql(sql, self.sql_engine)
 
             if (date_for_last_record.shape[0] > 0) & (date_for_last_record["latest_date"][0] is not None):
@@ -257,7 +262,7 @@ class mobile_commons_connection:
                 )
                 date = pd.read_sql(sql, self.sql_engine)
                 latest_date = self.parse_datetime(date,"latest_date")
-                print(f"Grabbing records starting from: {latest_date} up to 30 days after.")
+                print(f"Grabbing records starting from {latest_date}.")
                 #latest_date here is already one second plus the activated_at timestamp of the last record uploaded in the previous upload.
                 #if there was no prior upload then its the hardocded value of 2020-10-01 00:00:00+00:00
             else:
@@ -313,10 +318,16 @@ class mobile_commons_connection:
             params["limit"] = self.limit
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None):
-            params[self.api_incremental_key] = self.last_timestamp #from
-            last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-            up_to_date = last_timestamp_datetime + timedelta(days=30) #to
-            params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
+            if self.endpoint == "sent_messages":
+                params[self.api_incremental_key] = self.last_timestamp #from
+                last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
+                up_to_date = last_timestamp_datetime + timedelta(days=1) #to
+                params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
+            else:
+                params[self.api_incremental_key] = self.last_timestamp #from
+                last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
+                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
+                params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
 
         if self.group_id is not None:
             params["group_id"] = self.group_id

@@ -50,7 +50,7 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
-
+IGNORE_INDEX_FILTER = True
 
 def main():
 
@@ -98,7 +98,7 @@ def main():
         tap.load(df, index)
 
         indices = set(data["id"])
-        #indices = [str(ix) for ix in indices if str(ix) == "738422"]
+        #indices = [str(ix) for ix in indices if str(ix) == "682045"]
         index_results = []
 
         for i in indices:
@@ -123,7 +123,7 @@ def main():
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp()
+                subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
 
                 print(
                     "Kicking off extraction for endpoint {} GROUP {}...".format(

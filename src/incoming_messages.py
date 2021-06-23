@@ -62,6 +62,7 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
 INCLUDE_OPT_IN_PATHS = 1
+IGNORE_INDEX_FILTER = True
 
 def main():
 
@@ -112,7 +113,7 @@ def main():
 
         tap.load(df, index)
         indices = set(data["id"])
-        #indices = [str(ix) for ix in indices if str(ix) == "209901"]
+        #indices = [str(ix) for ix in indices if str(ix) == "212448"]
         index_results = []
 
         for i in indices:
@@ -136,7 +137,7 @@ def main():
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp()
+                subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
 
                 print(
                     "Kicking off extraction for endpoint {} CAMPAIGN {}...".format(
@@ -177,7 +178,7 @@ def main():
 
         if len(index_results) > 0:
 
-            all_results = pd.concat(index_results, sort=True, join="inner")
+            all_results = pd.concat(index_results, sort=True, join="outer")
 
             print(
                 "Loading data from endpoint {} into database...".format(

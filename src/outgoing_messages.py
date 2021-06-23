@@ -63,7 +63,7 @@ http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
 INCLUDE_PROFILE = 1
 INCLUDE_OPT_IN_PATHS = 1
-
+IGNORE_INDEX_FILTER = True
 
 def main():
 
@@ -141,7 +141,7 @@ def main():
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp()
+                subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
 
                 print(
                     "Kicking off extraction for endpoint {} CAMPAIGN {}...".format(
