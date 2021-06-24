@@ -59,7 +59,7 @@ class mobile_commons_connection:
         self.up_to = kwargs.get("up_to", None)
         self.include_opt_in_paths = kwargs.get("include_opt_in_paths", None)
         #used in campaigns.py & anything that calls the campaign endpoint
-        self.include_profile = kwargs.get("include_profile", None)
+        # self.include_profile = kwargs.get("include_profile", None)
         #used in outgoing_messages.py
         self.schema = kwargs.get("schema", "public")
         self.table_prefix = kwargs.get("table_prefix", "")
@@ -77,13 +77,13 @@ class mobile_commons_connection:
             pool_pre_ping=True
         )
 
-    async def get_page(self, page, retries=5, **kwargs):
+    async def get_page(self, page, retries=10, **kwargs):
         """Base asynchronous request function"""
 
         if self.endpoint == "campaigns":
             params = {"page": page, "include_opt_in_paths": kwargs["include_opt_in_paths"]}
-        elif self.endpoint == "sent_messages":
-            params = {"page": page, "include_profile": kwargs["include_profile"]}
+        # elif self.endpoint == "sent_messages":
+        #     params = {"page": page, "include_profile": kwargs["include_profile"]}
         else:
             params = {"page": page} # page here is page number
 
@@ -232,6 +232,13 @@ class mobile_commons_connection:
             latest_date = self.parse_datetime(date,"latest_date")
             print(f"Grabbing records starting from {latest_date}.")
 
+        #profiles has some profiles that were created in september
+        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint =="profiles"):
+            first_record_sql = "select to_timestamp('2020-09-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
+            date = pd.read_sql(first_record_sql, self.sql_engine)
+            latest_date = self.parse_datetime(date,"latest_date")
+            print(f"Grabbing records starting from {latest_date}.")
+
         #if the endpoint is campaign_subscribers and the table exists, then take the max of both activated_at and opted_out_at
         elif (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == True) & (self.endpoint == "campaign_subscribers"):
             sql = (
@@ -309,8 +316,8 @@ class mobile_commons_connection:
 
         if self.endpoint == "campaigns":
             params = {"page": page, "include_opt_in_paths": kwargs["include_opt_in_paths"]}
-        elif self.endpoint == "sent_messages":
-            params = {"page": page, "include_profile": kwargs["include_profile"]}
+        # elif self.endpoint == "sent_messages":
+        #     params = {"page": page, "include_profile": kwargs["include_profile"]}
         else:
             params = {"page": page} # page here is page number
 

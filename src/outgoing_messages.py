@@ -61,7 +61,7 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
-INCLUDE_PROFILE = 1
+#INCLUDE_PROFILE = 1
 INCLUDE_OPT_IN_PATHS = 1
 IGNORE_INDEX_FILTER = True
 
@@ -89,7 +89,7 @@ def main():
             "schema": SCHEMA,
             "table_prefix": TABLE_PREFIX,
             "db_incremental_key": RS_INCREMENTAL_KEYS[index],
-            "include_profile":INCLUDE_PROFILE,
+            #"include_profile":INCLUDE_PROFILE,
             "include_opt_in_paths":INCLUDE_OPT_IN_PATHS,
         }
 

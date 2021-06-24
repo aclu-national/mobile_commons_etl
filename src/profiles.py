@@ -30,6 +30,7 @@ ALL_ENDPOINTS = ["profiles"]
 
 RS_INCREMENTAL_KEYS = {"profiles": "updated_at"}
 API_INCREMENTAL_KEYS = {"profiles": "from"}
+UP_TO = {"profiles": "to"}
 ENDPOINT_KEY = {1: {"profiles": "profiles"}, 0: {"profiles": "profile"}}
 MIN_PAGES = 1
 MAX_PAGES = 20000
@@ -73,6 +74,7 @@ def main():
             "schema": SCHEMA,
             "table_prefix": TABLE_PREFIX,
             "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
+            "up_to" : UP_TO[ENDPOINT],
         }
 
         tap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
