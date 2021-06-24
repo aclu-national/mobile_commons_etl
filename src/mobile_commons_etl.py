@@ -97,7 +97,7 @@ class mobile_commons_connection:
             if self.endpoint == "sent_messages":
                 params[self.api_incremental_key] = self.last_timestamp #from
                 last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=1) #to
+                up_to_date = last_timestamp_datetime + timedelta(days=15) #to
                 params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
             else:
                 params[self.api_incremental_key] = self.last_timestamp #from
@@ -321,7 +321,7 @@ class mobile_commons_connection:
             if self.endpoint == "sent_messages":
                 params[self.api_incremental_key] = self.last_timestamp #from
                 last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=1) #to
+                up_to_date = last_timestamp_datetime + timedelta(days=15) #to
                 params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
             else:
                 params[self.api_incremental_key] = self.last_timestamp #from
