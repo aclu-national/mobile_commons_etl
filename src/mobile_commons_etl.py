@@ -197,7 +197,7 @@ class mobile_commons_connection:
                     for c in df_agg_test.columns
                 ]
 
-                df_agg_test = df_agg_teset.loc[:, df_agg_test.columns.isin(list(self.columns.keys()))]
+                df_agg_test = df_agg_test.loc[:, df_agg_test.columns.isin(list(self.columns.keys()))]
 
                 if df_agg_test.memory_usage(deep=True).sum() < 8000:
                     continue
