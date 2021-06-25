@@ -33,7 +33,7 @@ API_INCREMENTAL_KEYS = {"profiles": "from"}
 UP_TO = {"profiles": "to"}
 ENDPOINT_KEY = {1: {"profiles": "profiles"}, 0: {"profiles": "profile"}}
 MIN_PAGES = 1
-MAX_PAGES = 800
+MAX_PAGES = 200
 LIMIT = 500
 AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 
