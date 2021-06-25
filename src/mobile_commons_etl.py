@@ -97,7 +97,7 @@ class mobile_commons_connection:
             if (self.endpoint == "sent_messages") or (self.endpoint == "profiles"):
                 params[self.api_incremental_key] = self.last_timestamp #from
                 last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=15) #to
+                up_to_date = last_timestamp_datetime + timedelta(days=10) #to
                 params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
             else:
                 params[self.api_incremental_key] = self.last_timestamp #from
@@ -158,6 +158,11 @@ class mobile_commons_connection:
 
         res = []
 
+        #DRAFT BEGINS HERE
+        endpoint_key_0 = self.endpoint_key[0][self.endpoint]
+        endpoint_key_1 = self.endpoint_key[1][self.endpoint]
+        res_list_test = []
+
         for b in range(1, len(breaks)):
 
             temp = loop.run_until_complete(
@@ -170,8 +175,34 @@ class mobile_commons_connection:
             )
             res += temp
 
-        endpoint_key_0 = self.endpoint_key[0][self.endpoint]
-        endpoint_key_1 = self.endpoint_key[1][self.endpoint]
+            for r in res:
+                try:
+                    if (
+                        json.loads(json.dumps(xmltodict.parse(r))).get("response")
+                        is not None
+                    ):
+                        json_xml = json.loads(json.dumps(xmltodict.parse(r)))
+                        page_result = json_normalize(
+                            json_xml["response"][endpoint_key_1][endpoint_key_0],
+                            max_level=0,
+                        )
+                        res_list_test.append(page_result)
+                except:
+                    print("Improperly formatted XML response... skipping")
+                    continue
+
+                df_agg_test = pd.concat(res_list_test, sort=True, join="outer")
+                df_agg_test.columns = [
+                    c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
+                    for c in df_agg_test.columns
+                ]
+
+                df_agg_test = df_agg_teset.loc[:, df_agg_test.columns.isin(list(self.columns.keys()))]
+
+                if df_agg_test.memory_usage(deep=True).sum() < 8000:
+                    continue
+                else:
+                    self.load_df(df_agg_test)
 
         res_list = []
 
@@ -196,10 +227,68 @@ class mobile_commons_connection:
             c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
             for c in df_agg.columns
         ]
-        #print(df_agg.columns)
-        #print(self.columns.keys())
         df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
         return df_agg
+        #DRAFT ENDS HERE
+
+        #ORIGINAL
+        # for b in range(1, len(breaks)):
+        #
+        #     temp = loop.run_until_complete(
+        #         asyncio.gather(
+        #             *(
+        #                 self.get_page(page, **kwargs)
+        #                 for page in range(breaks[b - 1], breaks[b])
+        #             )
+        #         )
+        #     )
+        #     res += temp
+        #
+        # endpoint_key_0 = self.endpoint_key[0][self.endpoint]
+        # endpoint_key_1 = self.endpoint_key[1][self.endpoint]
+        #
+        # res_list = []
+        #
+        # for r in res:
+        #     try:
+        #         if (
+        #             json.loads(json.dumps(xmltodict.parse(r))).get("response")
+        #             is not None
+        #         ):
+        #             json_xml = json.loads(json.dumps(xmltodict.parse(r)))
+        #             page_result = json_normalize(
+        #                 json_xml["response"][endpoint_key_1][endpoint_key_0],
+        #                 max_level=0,
+        #             )
+        #             res_list.append(page_result)
+        #     except:
+        #         print("Improperly formatted XML response... skipping")
+        #         continue
+        #
+        # df_agg = pd.concat(res_list, sort=True, join="outer")
+        # df_agg.columns = [
+        #     c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
+        #     for c in df_agg.columns
+        # ]
+        # #print(df_agg.columns)
+        # #print(self.columns.keys())
+        # df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
+        # return df_agg
+        #ORIGINAL
+
+    #DRAFT
+    def load_large_df(ping_endpoint_df):
+        template = pd.DataFrame(columns=tap.columns)
+
+        if ping_endpoint_df is not None:
+
+            df = pd.concat([template, ping_endpoint_df], sort=True, join="inner")
+            print(
+                "Loading data from endpoint {} into database...".format(
+                    str.upper(self.endpoint), flush=True, file=sys.stdout
+                )
+            )
+            self.load(df, self.endpoint)
 
     def get_latest_record(self, endpoint,ignore_index_filter=False):
         """Pulls the latest record from the database to use for incremental updates"""
@@ -328,7 +417,7 @@ class mobile_commons_connection:
             if (self.endpoint == "sent_messages") or (self.endpoint == "profiles"):
                 params[self.api_incremental_key] = self.last_timestamp #from
                 last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=15) #to
+                up_to_date = last_timestamp_datetime + timedelta(days=10) #to
                 params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
             else:
                 params[self.api_incremental_key] = self.last_timestamp #from
