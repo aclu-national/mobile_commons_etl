@@ -12,6 +12,7 @@ import aiohttp
 import numpy as np
 import sqlalchemy
 import mobile_commons_data as mcd
+import pdb
 #import pytz
 
 from sqlalchemy import create_engine
@@ -158,80 +159,11 @@ class mobile_commons_connection:
 
         res = []
 
-        #DRAFT BEGINS HERE
-        endpoint_key_0 = self.endpoint_key[0][self.endpoint]
-        endpoint_key_1 = self.endpoint_key[1][self.endpoint]
-        res_list_test = []
-
-        for b in range(1, len(breaks)):
-
-            temp = loop.run_until_complete(
-                asyncio.gather(
-                    *(
-                        self.get_page(page, **kwargs)
-                        for page in range(breaks[b - 1], breaks[b])
-                    )
-                )
-            )
-            res += temp
-
-            for r in res:
-                try:
-                    if (
-                        json.loads(json.dumps(xmltodict.parse(r))).get("response")
-                        is not None
-                    ):
-                        json_xml = json.loads(json.dumps(xmltodict.parse(r)))
-                        page_result = json_normalize(
-                            json_xml["response"][endpoint_key_1][endpoint_key_0],
-                            max_level=0,
-                        )
-                        res_list_test.append(page_result)
-                except:
-                    print("Improperly formatted XML response... skipping")
-                    continue
-
-                df_agg_test = pd.concat(res_list_test, sort=True, join="outer")
-                df_agg_test.columns = [
-                    c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
-                    for c in df_agg_test.columns
-                ]
-
-                df_agg_test = df_agg_test.loc[:, df_agg_test.columns.isin(list(self.columns.keys()))]
-
-                if df_agg_test.memory_usage(deep=True).sum() < 8000:
-                    continue
-                else:
-                    self.load_df(df_agg_test)
-
-        res_list = []
-
-        for r in res:
-            try:
-                if (
-                    json.loads(json.dumps(xmltodict.parse(r))).get("response")
-                    is not None
-                ):
-                    json_xml = json.loads(json.dumps(xmltodict.parse(r)))
-                    page_result = json_normalize(
-                        json_xml["response"][endpoint_key_1][endpoint_key_0],
-                        max_level=0,
-                    )
-                    res_list.append(page_result)
-            except:
-                print("Improperly formatted XML response... skipping")
-                continue
-
-        df_agg = pd.concat(res_list, sort=True, join="outer")
-        df_agg.columns = [
-            c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
-            for c in df_agg.columns
-        ]
-        df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
-        return df_agg
-        #DRAFT ENDS HERE
-
-        #ORIGINAL
+        # #DRAFT BEGINS HERE
+        # endpoint_key_0 = self.endpoint_key[0][self.endpoint]
+        # endpoint_key_1 = self.endpoint_key[1][self.endpoint]
+        # res_list_test = []
+        #
         # for b in range(1, len(breaks)):
         #
         #     temp = loop.run_until_complete(
@@ -244,8 +176,34 @@ class mobile_commons_connection:
         #     )
         #     res += temp
         #
-        # endpoint_key_0 = self.endpoint_key[0][self.endpoint]
-        # endpoint_key_1 = self.endpoint_key[1][self.endpoint]
+        #     for r in res:
+        #         try:
+        #             if (
+        #                 json.loads(json.dumps(xmltodict.parse(r))).get("response")
+        #                 is not None
+        #             ):
+        #                 json_xml = json.loads(json.dumps(xmltodict.parse(r)))
+        #                 page_result = json_normalize(
+        #                     json_xml["response"][endpoint_key_1][endpoint_key_0],
+        #                     max_level=0,
+        #                 )
+        #                 res_list_test.append(page_result)
+        #         except:
+        #             print("Improperly formatted XML response... skipping")
+        #             continue
+        #
+        #         df_agg_test = pd.concat(res_list_test, sort=True, join="outer")
+        #         df_agg_test.columns = [
+        #             c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
+        #             for c in df_agg_test.columns
+        #         ]
+        #
+        #         df_agg_test = df_agg_test.loc[:, df_agg_test.columns.isin(list(self.columns.keys()))]
+        #
+        #         if df_agg_test.memory_usage(deep=True).sum() < 8000:
+        #             continue
+        #         else:
+        #             self.load_df(df_agg_test)
         #
         # res_list = []
         #
@@ -270,10 +228,54 @@ class mobile_commons_connection:
         #     c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
         #     for c in df_agg.columns
         # ]
-        # #print(df_agg.columns)
-        # #print(self.columns.keys())
         # df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
         # return df_agg
+        #DRAFT ENDS HERE
+
+        #ORIGINAL
+        for b in range(1, len(breaks)):
+
+            temp = loop.run_until_complete(
+                asyncio.gather(
+                    *(
+                        self.get_page(page, **kwargs)
+                        for page in range(breaks[b - 1], breaks[b])
+                    )
+                )
+            )
+            res += temp
+
+        endpoint_key_0 = self.endpoint_key[0][self.endpoint]
+        endpoint_key_1 = self.endpoint_key[1][self.endpoint]
+
+        res_list = []
+
+        for r in res:
+            try:
+                if (
+                    json.loads(json.dumps(xmltodict.parse(r))).get("response")
+                    is not None
+                ):
+                    json_xml = json.loads(json.dumps(xmltodict.parse(r)))
+                    page_result = json_normalize(
+                        json_xml["response"][endpoint_key_1][endpoint_key_0],
+                        max_level=0,
+                    )
+                    res_list.append(page_result)
+            except:
+                print("Improperly formatted XML response... skipping")
+                continue
+        #.infer_objects()
+        df_agg = pd.concat(res_list, sort=True, join="outer")
+        df_agg.columns = [
+            c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
+            for c in df_agg.columns
+        ]
+        #print(df_agg.columns)
+        #print(self.columns.keys())
+        df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
+        #pdb.set_trace()
+        return df_agg
         #ORIGINAL
 
     #DRAFT

@@ -33,7 +33,7 @@ API_INCREMENTAL_KEYS = {"profiles": "from"}
 UP_TO = {"profiles": "to"}
 ENDPOINT_KEY = {1: {"profiles": "profiles"}, 0: {"profiles": "profile"}}
 MIN_PAGES = 1
-MAX_PAGES = 20000
+MAX_PAGES = 800
 LIMIT = 500
 AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 
@@ -90,6 +90,7 @@ def main():
         if page_count > 0:
 
             print("Guessing page count...")
+            #tap.page_count=10
             tap.page_count = tap.get_page_count(**keywords)
 
             print(
