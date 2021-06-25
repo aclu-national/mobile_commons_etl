@@ -94,7 +94,7 @@ def main():
 
             print(
                 "There are {} pages in the result set for endpoint {}".format(
-                    page_count, str.upper(ENDPOINT)
+                    tap.page_count, str.upper(ENDPOINT)
                 )
             )
 

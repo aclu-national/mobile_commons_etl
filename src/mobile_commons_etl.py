@@ -94,7 +94,7 @@ class mobile_commons_connection:
             params["campaign_id"] = self.campaign_id
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None) & (~self.full_build):
-            if self.endpoint == "sent_messages":
+            if (self.endpoint == "sent_messages") or (self.endpoint == "profiles"):
                 params[self.api_incremental_key] = self.last_timestamp #from
                 last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
                 up_to_date = last_timestamp_datetime + timedelta(days=15) #to
@@ -233,7 +233,7 @@ class mobile_commons_connection:
             print(f"Grabbing records starting from {latest_date}.")
 
         #profiles has some profiles that were created in september
-        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint =="profiles"):
+        elif (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint =="profiles"):
             first_record_sql = "select to_timestamp('2020-09-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
             date = pd.read_sql(first_record_sql, self.sql_engine)
             latest_date = self.parse_datetime(date,"latest_date")
@@ -325,7 +325,7 @@ class mobile_commons_connection:
             params["limit"] = self.limit
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None):
-            if self.endpoint == "sent_messages":
+            if (self.endpoint == "sent_messages") or (self.endpoint == "profiles"):
                 params[self.api_incremental_key] = self.last_timestamp #from
                 last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
                 up_to_date = last_timestamp_datetime + timedelta(days=15) #to
