@@ -78,7 +78,7 @@ class mobile_commons_connection:
             pool_pre_ping=True
         )
 
-    async def get_page(self, page, retries=10, **kwargs):
+    async def get_page(self, page, retries=5, **kwargs):
         """Base asynchronous request function"""
 
         if self.endpoint == "campaigns":
@@ -98,7 +98,7 @@ class mobile_commons_connection:
             if (self.endpoint == "sent_messages") or (self.endpoint == "profiles"):
                 params[self.api_incremental_key] = self.last_timestamp #from
                 last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=10) #to
+                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
                 params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
             else:
                 params[self.api_incremental_key] = self.last_timestamp #from
@@ -144,10 +144,10 @@ class mobile_commons_connection:
 
         # Chunks async calls into bundles if page count is greater than 500
 
-        if self.page_count > 500:
+        if self.page_count > 200:
             partition_size = int(
                 math.ceil(
-                    self.page_count ** (1 - math.log(500) / math.log(self.page_count))
+                    self.page_count ** (1 - math.log(200) / math.log(self.page_count))
                 )
             )
             breaks = [
@@ -159,80 +159,6 @@ class mobile_commons_connection:
 
         res = []
 
-        # #DRAFT BEGINS HERE
-        # endpoint_key_0 = self.endpoint_key[0][self.endpoint]
-        # endpoint_key_1 = self.endpoint_key[1][self.endpoint]
-        # res_list_test = []
-        #
-        # for b in range(1, len(breaks)):
-        #
-        #     temp = loop.run_until_complete(
-        #         asyncio.gather(
-        #             *(
-        #                 self.get_page(page, **kwargs)
-        #                 for page in range(breaks[b - 1], breaks[b])
-        #             )
-        #         )
-        #     )
-        #     res += temp
-        #
-        #     for r in res:
-        #         try:
-        #             if (
-        #                 json.loads(json.dumps(xmltodict.parse(r))).get("response")
-        #                 is not None
-        #             ):
-        #                 json_xml = json.loads(json.dumps(xmltodict.parse(r)))
-        #                 page_result = json_normalize(
-        #                     json_xml["response"][endpoint_key_1][endpoint_key_0],
-        #                     max_level=0,
-        #                 )
-        #                 res_list_test.append(page_result)
-        #         except:
-        #             print("Improperly formatted XML response... skipping")
-        #             continue
-        #
-        #         df_agg_test = pd.concat(res_list_test, sort=True, join="outer")
-        #         df_agg_test.columns = [
-        #             c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
-        #             for c in df_agg_test.columns
-        #         ]
-        #
-        #         df_agg_test = df_agg_test.loc[:, df_agg_test.columns.isin(list(self.columns.keys()))]
-        #
-        #         if df_agg_test.memory_usage(deep=True).sum() < 8000:
-        #             continue
-        #         else:
-        #             self.load_df(df_agg_test)
-        #
-        # res_list = []
-        #
-        # for r in res:
-        #     try:
-        #         if (
-        #             json.loads(json.dumps(xmltodict.parse(r))).get("response")
-        #             is not None
-        #         ):
-        #             json_xml = json.loads(json.dumps(xmltodict.parse(r)))
-        #             page_result = json_normalize(
-        #                 json_xml["response"][endpoint_key_1][endpoint_key_0],
-        #                 max_level=0,
-        #             )
-        #             res_list.append(page_result)
-        #     except:
-        #         print("Improperly formatted XML response... skipping")
-        #         continue
-        #
-        # df_agg = pd.concat(res_list, sort=True, join="outer")
-        # df_agg.columns = [
-        #     c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
-        #     for c in df_agg.columns
-        # ]
-        # df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
-        # return df_agg
-        #DRAFT ENDS HERE
-
-        #ORIGINAL
         for b in range(1, len(breaks)):
 
             temp = loop.run_until_complete(
@@ -243,8 +169,13 @@ class mobile_commons_connection:
                     )
                 )
             )
-            res += temp
 
+            #load batch here
+            #res += temp
+            self.parse_temp_and_load(temp)
+
+    def parse_temp_and_load(self,res):
+        print("DOING PARSE TEMP AND LOAD")
         endpoint_key_0 = self.endpoint_key[0][self.endpoint]
         endpoint_key_1 = self.endpoint_key[1][self.endpoint]
 
@@ -256,41 +187,66 @@ class mobile_commons_connection:
                     json.loads(json.dumps(xmltodict.parse(r))).get("response")
                     is not None
                 ):
+                    print("JSON LOADS 192")
                     json_xml = json.loads(json.dumps(xmltodict.parse(r)))
                     page_result = json_normalize(
                         json_xml["response"][endpoint_key_1][endpoint_key_0],
                         max_level=0,
                     )
+                    print("RES LIST APPENDS 197")
                     res_list.append(page_result)
             except:
                 print("Improperly formatted XML response... skipping")
                 continue
-        #.infer_objects()
+        print("EXIT FOR LOOP 201")
+
+
         df_agg = pd.concat(res_list, sort=True, join="outer")
         df_agg.columns = [
             c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
             for c in df_agg.columns
         ]
-        #print(df_agg.columns)
-        #print(self.columns.keys())
+        print("DF AGG COLUMN KEYS 213")
         df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
-        #pdb.set_trace()
-        return df_agg
-        #ORIGINAL
 
-    #DRAFT
-    def load_large_df(ping_endpoint_df):
-        template = pd.DataFrame(columns=tap.columns)
+        template = pd.DataFrame(columns=self.columns)
+        df_agg = pd.concat([template, df_agg], sort=True, join="outer")
+        print("PD CONCAT 214")
 
-        if ping_endpoint_df is not None:
-
-            df = pd.concat([template, ping_endpoint_df], sort=True, join="inner")
+        if df_agg is not None:
             print(
                 "Loading data from endpoint {} into database...".format(
                     str.upper(self.endpoint), flush=True, file=sys.stdout
                 )
             )
-            self.load(df, self.endpoint)
+            self.load(df_agg, self.endpoint)
+        else:
+
+            print("No new results to load for endpoint {}".format(str.upper(ENDPOINT)))
+    #DRAFT
+    # def _get_col_dtype(col):
+    # """
+    # Infer datatype of a pandas column, process only if the column dtype is object.
+    # input:   col: a pandas Series representing a df column.
+    # """
+    #
+    # if col.dtype == "object":
+    #     # try numeric
+    #     try:
+    #         col_new = pd.to_datetime(col.dropna().unique())
+    #         return col_new.dtype
+    #     except:
+    #         try:
+    #             col_new = pd.to_numeric(col.dropna().unique())
+    #             return col_new.dtype
+    #         except:
+    #             try:
+    #                 col_new = pd.to_timedelta(col.dropna().unique())
+    #                 return col_new.dtype
+    #             except:
+    #                 return "object"
+    # else:
+    #     return col.dtype
 
     def get_latest_record(self, endpoint,ignore_index_filter=False):
         """Pulls the latest record from the database to use for incremental updates"""
@@ -317,7 +273,7 @@ class mobile_commons_connection:
         ins = inspect(self.sql_engine)
 
         #if the table DNE then set 2020-10-01 as the date to start from
-        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers","sent_messages","messages","group_members"]):
+        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers","sent_messages","messages","group_members","clicks"]):
             first_record_sql = "select to_timestamp('2020-10-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
             date = pd.read_sql(first_record_sql, self.sql_engine)
             latest_date = self.parse_datetime(date,"latest_date")
@@ -419,7 +375,7 @@ class mobile_commons_connection:
             if (self.endpoint == "sent_messages") or (self.endpoint == "profiles"):
                 params[self.api_incremental_key] = self.last_timestamp #from
                 last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=10) #to
+                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
                 params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
             else:
                 params[self.api_incremental_key] = self.last_timestamp #from

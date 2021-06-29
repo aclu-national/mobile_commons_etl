@@ -33,7 +33,7 @@ API_INCREMENTAL_KEYS = {"profiles": "from"}
 UP_TO = {"profiles": "to"}
 ENDPOINT_KEY = {1: {"profiles": "profiles"}, 0: {"profiles": "profile"}}
 MIN_PAGES = 1
-MAX_PAGES = 200
+MAX_PAGES = 20000
 LIMIT = 500
 AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 
@@ -100,21 +100,21 @@ def main():
             )
 
             data = tap.ping_endpoint(**keywords)
-            template = pd.DataFrame(columns=tap.columns)
+            # template = pd.DataFrame(columns=tap.columns)
+            #
+            # if data is not None:
+            #
+            #     df = pd.concat([template, data], sort=True, join="inner")
+            #     print(
+            #         "Loading data from endpoint {} into database...".format(
+            #             str.upper(ENDPOINT), flush=True, file=sys.stdout
+            #         )
+            #     )
+            #     tap.load(df, ENDPOINT)
 
-            if data is not None:
-
-                df = pd.concat([template, data], sort=True, join="inner")
-                print(
-                    "Loading data from endpoint {} into database...".format(
-                        str.upper(ENDPOINT), flush=True, file=sys.stdout
-                    )
-                )
-                tap.load(df, ENDPOINT)
-
-        else:
-
-            print("No new results to load for endpoint {}".format(str.upper(ENDPOINT)))
+        # else:
+        #
+        #     print("No new results to load for endpoint {}".format(str.upper(ENDPOINT)))
 
 
 if __name__ == "__main__":
