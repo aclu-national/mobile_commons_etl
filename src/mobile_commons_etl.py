@@ -223,30 +223,6 @@ class mobile_commons_connection:
 
             print("No new results to load for endpoint {}".format(str.upper(ENDPOINT)))
         return df_agg
-    #DRAFT
-    # def _get_col_dtype(col):
-    # """
-    # Infer datatype of a pandas column, process only if the column dtype is object.
-    # input:   col: a pandas Series representing a df column.
-    # """
-    #
-    # if col.dtype == "object":
-    #     # try numeric
-    #     try:
-    #         col_new = pd.to_datetime(col.dropna().unique())
-    #         return col_new.dtype
-    #     except:
-    #         try:
-    #             col_new = pd.to_numeric(col.dropna().unique())
-    #             return col_new.dtype
-    #         except:
-    #             try:
-    #                 col_new = pd.to_timedelta(col.dropna().unique())
-    #                 return col_new.dtype
-    #             except:
-    #                 return "object"
-    # else:
-    #     return col.dtype
 
     def get_latest_record(self, endpoint,ignore_index_filter=False):
         """Pulls the latest record from the database to use for incremental updates"""
