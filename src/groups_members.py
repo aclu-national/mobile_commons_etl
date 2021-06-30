@@ -86,16 +86,16 @@ def main():
         )
 
         data = tap.ping_endpoint(**keywords)
-        template = pd.DataFrame(columns=tap.columns)
-        df = pd.concat([template, data], sort=True, join="inner")
-
-        print(
-            "Loading data from endpoint {} into database...".format(
-                str.upper(index), flush=True, file=sys.stdout
-            )
-        )
-
-        tap.load(df, index)
+        # template = pd.DataFrame(columns=tap.columns)
+        # df = pd.concat([template, data], sort=True, join="inner")
+        #
+        # print(
+        #     "Loading data from endpoint {} into database...".format(
+        #         str.upper(index), flush=True, file=sys.stdout
+        #     )
+        # )
+        #
+        # tap.load(df, index)
 
         indices = set(data["id"])
         #indices = [str(ix) for ix in indices if str(ix) == "682045"]
@@ -145,14 +145,15 @@ def main():
                         )
                     )
 
-                    data = subtap.ping_endpoint(**keywords)
-                    template = pd.DataFrame(columns=subtap.columns)
-
-                    if data is not None:
-
-                        df = pd.concat([template, data], sort=True, join="inner")
-                        df[INDEX_SET[index]] = str(i)
-                        index_results.append(df)
+                    subtap.ping_endpoint(**keywords)
+                    # data =
+                    # template = pd.DataFrame(columns=subtap.columns)
+                    #
+                    # if data is not None:
+                    #
+                    #     df = pd.concat([template, data], sort=True, join="inner")
+                    #     df[INDEX_SET[index]] = str(i)
+                    #     index_results.append(df)
 
                 else:
 
@@ -162,25 +163,25 @@ def main():
                         )
                     )
 
-        if len(index_results) > 0:
-
-            all_results = pd.concat(index_results, sort=True, join="inner")
-
-            print(
-                "Loading data from endpoint {} into database...".format(
-                    str.upper(ENDPOINT), flush=True, file=sys.stdout
-                )
-            )
-
-            subtap.load(all_results, ENDPOINT)
-
-        else:
-
-            print(
-                "No new data from endpoint {}. ".format(
-                    str.upper(ENDPOINT), flush=True, file=sys.stdout
-                )
-            )
+        # if len(index_results) > 0:
+        #
+        #     all_results = pd.concat(index_results, sort=True, join="inner")
+        #
+        #     print(
+        #         "Loading data from endpoint {} into database...".format(
+        #             str.upper(ENDPOINT), flush=True, file=sys.stdout
+        #         )
+        #     )
+        #
+        #     subtap.load(all_results, ENDPOINT)
+        #
+        # else:
+        #
+        #     print(
+        #         "No new data from endpoint {}. ".format(
+        #             str.upper(ENDPOINT), flush=True, file=sys.stdout
+        #         )
+        #     )
 
 
 if __name__ == "__main__":

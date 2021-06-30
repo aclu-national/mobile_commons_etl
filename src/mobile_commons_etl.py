@@ -13,7 +13,6 @@ import numpy as np
 import sqlalchemy
 import mobile_commons_data as mcd
 import pdb
-#import pytz
 
 from sqlalchemy import create_engine
 from sqlalchemy import inspect
@@ -60,8 +59,6 @@ class mobile_commons_connection:
         self.up_to = kwargs.get("up_to", None)
         self.include_opt_in_paths = kwargs.get("include_opt_in_paths", None)
         #used in campaigns.py & anything that calls the campaign endpoint
-        # self.include_profile = kwargs.get("include_profile", None)
-        #used in outgoing_messages.py
         self.schema = kwargs.get("schema", "public")
         self.table_prefix = kwargs.get("table_prefix", "")
         self.sql_engine = create_engine(
@@ -83,8 +80,6 @@ class mobile_commons_connection:
 
         if self.endpoint == "campaigns":
             params = {"page": page, "include_opt_in_paths": kwargs["include_opt_in_paths"]}
-        # elif self.endpoint == "sent_messages":
-        #     params = {"page": page, "include_profile": kwargs["include_profile"]}
         else:
             params = {"page": page} # page here is page number
 
@@ -95,16 +90,10 @@ class mobile_commons_connection:
             params["campaign_id"] = self.campaign_id
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None) & (~self.full_build):
-            if (self.endpoint == "sent_messages") or (self.endpoint == "profiles"):
-                params[self.api_incremental_key] = self.last_timestamp #from
-                last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
-                params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
-            else:
-                params[self.api_incremental_key] = self.last_timestamp #from
-                last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
-                params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
+            params[self.api_incremental_key] = self.last_timestamp #from
+            last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
+            up_to_date = last_timestamp_datetime + timedelta(days=30) #to
+            params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
 
         if self.url_id is not None:
             params["url_id"] = self.url_id
@@ -142,7 +131,7 @@ class mobile_commons_connection:
         """Wrapper for asynchronous calls that then have results collated into a dataframe"""
         loop = asyncio.get_event_loop()
 
-        # Chunks async calls into bundles if page count is greater than 500
+        # Chunks async calls into bundles if page count is greater than 200
 
         if self.page_count > 200:
             partition_size = int(
@@ -174,7 +163,6 @@ class mobile_commons_connection:
             return df_agg
 
     def parse_temp_and_load(self,res):
-        print("DOING PARSE TEMP AND LOAD")
         endpoint_key_0 = self.endpoint_key[0][self.endpoint]
         endpoint_key_1 = self.endpoint_key[1][self.endpoint]
 
@@ -186,18 +174,15 @@ class mobile_commons_connection:
                     json.loads(json.dumps(xmltodict.parse(r))).get("response")
                     is not None
                 ):
-                    print("JSON LOADS 192")
                     json_xml = json.loads(json.dumps(xmltodict.parse(r)))
                     page_result = json_normalize(
                         json_xml["response"][endpoint_key_1][endpoint_key_0],
                         max_level=0,
                     )
-                    print("RES LIST APPENDS 197")
                     res_list.append(page_result)
             except:
                 print("Improperly formatted XML response... skipping")
                 continue
-        print("EXIT FOR LOOP 201")
 
 
         df_agg = pd.concat(res_list, sort=True, join="outer")
@@ -205,12 +190,11 @@ class mobile_commons_connection:
             c.replace(".", "_").replace("@", "").replace("@_", "").replace("_@", "")
             for c in df_agg.columns
         ]
-        print("DF AGG COLUMN KEYS 213")
+
         df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
 
         template = pd.DataFrame(columns=self.columns)
         df_agg_concat = pd.concat([template, df_agg], sort=True, join="outer")
-        print("PD CONCAT 214")
 
         if df_agg_concat is not None:
             print(
@@ -319,8 +303,6 @@ class mobile_commons_connection:
                 file=sys.stdout,
             )
             self.last_timestamp = self.get_latest_record(self.endpoint,ignore_index_filter=ignore_index_filter)
-            #print(f"Latest timestamp: {self.last_timestamp}")
-            #this is where we used to display the latest timestamp for incremental build
 
         else:
             self.last_timestamp = None
@@ -339,8 +321,6 @@ class mobile_commons_connection:
 
         if self.endpoint == "campaigns":
             params = {"page": page, "include_opt_in_paths": kwargs["include_opt_in_paths"]}
-        # elif self.endpoint == "sent_messages":
-        #     params = {"page": page, "include_profile": kwargs["include_profile"]}
         else:
             params = {"page": page} # page here is page number
 
@@ -348,16 +328,10 @@ class mobile_commons_connection:
             params["limit"] = self.limit
 
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None):
-            if (self.endpoint == "sent_messages") or (self.endpoint == "profiles"):
-                params[self.api_incremental_key] = self.last_timestamp #from
-                last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
-                params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
-            else:
-                params[self.api_incremental_key] = self.last_timestamp #from
-                last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
-                params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
+            params[self.api_incremental_key] = self.last_timestamp #from
+            last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
+            up_to_date = last_timestamp_datetime + timedelta(days=30) #to
+            params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
 
         if self.group_id is not None:
             params["group_id"] = self.group_id
@@ -384,30 +358,6 @@ class mobile_commons_connection:
 
         elif formatted_response.get("page_count") is not None:
             num_results = int(formatted_response.get("page_count"))
-
-        #DELETE BEFORE MAKING PR
-        # utc=pytz.UTC
-        # while formatted_response.get(endpoint_key_0) is None and self.reached_page_convergence is True and datetime.strptime(params[self.up_to],'%Y-%m-%d %H:%M:%S%z').replace(tzinfo=utc) < datetime.now().replace(tzinfo=utc):
-        #         print(params[self.up_to])
-        #         self.last_timestamp = params[self.up_to]
-        #         from_ = datetime.strptime(self.last_timestamp, '%Y-%m-%d %H:%M:%S%z')
-        #         from_plus_one = from_ + timedelta(days=0,seconds=1)
-        #         params[self.api_incremental_key] = from_plus_one.strftime('%Y-%m-%d %H:%M:%S%z')
-        #
-        #
-        #         last_timestamp_datetime = datetime.strptime(params[self.api_incremental_key] , '%Y-%m-%d %H:%M:%S%z')
-        #         up_to_date = last_timestamp_datetime + timedelta(days=30) #to
-        #         params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
-        #
-        #         resp = self.session.get(
-        #             self.base + self.endpoint, auth=(self.user, self.pw), params=params
-        #         )
-        #
-        #         print(f"{resp.url}")
-        #
-        #         formatted_response = json.loads(json.dumps(xmltodict.parse(resp.text)))[
-        #             "response"
-        #         ][endpoint_key_1]
 
         elif formatted_response.get(endpoint_key_0) is not None:
             num_results = 1

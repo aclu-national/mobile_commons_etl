@@ -90,7 +90,6 @@ def main():
         if page_count > 0:
 
             print("Guessing page count...")
-            #tap.page_count=10
             tap.page_count = tap.get_page_count(**keywords)
 
             print(
