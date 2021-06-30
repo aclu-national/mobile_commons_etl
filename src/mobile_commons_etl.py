@@ -233,7 +233,7 @@ class mobile_commons_connection:
         ins = inspect(self.sql_engine)
 
         #if the table DNE then set 2020-10-01 as the date to start from
-        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers","sent_messages","messages","groups_members","clicks"]):
+        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers","sent_messages","messages","group_members","clicks"]):
             first_record_sql = "select to_timestamp('2020-10-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
             date = pd.read_sql(first_record_sql, self.sql_engine)
             latest_date = self.parse_datetime(date,"latest_date")
