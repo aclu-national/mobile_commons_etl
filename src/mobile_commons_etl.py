@@ -170,9 +170,8 @@ class mobile_commons_connection:
                 )
             )
 
-            #load batch here
-            #res += temp
-            self.parse_temp_and_load(temp)
+            df_agg = self.parse_temp_and_load(temp)
+            return df_agg
 
     def parse_temp_and_load(self,res):
         print("DOING PARSE TEMP AND LOAD")
@@ -210,19 +209,20 @@ class mobile_commons_connection:
         df_agg = df_agg.loc[:, df_agg.columns.isin(list(self.columns.keys()))]
 
         template = pd.DataFrame(columns=self.columns)
-        df_agg = pd.concat([template, df_agg], sort=True, join="outer")
+        df_agg_concat = pd.concat([template, df_agg], sort=True, join="outer")
         print("PD CONCAT 214")
 
-        if df_agg is not None:
+        if df_agg_concat is not None:
             print(
                 "Loading data from endpoint {} into database...".format(
                     str.upper(self.endpoint), flush=True, file=sys.stdout
                 )
             )
-            self.load(df_agg, self.endpoint)
+            self.load(df_agg_concat, self.endpoint)
         else:
 
             print("No new results to load for endpoint {}".format(str.upper(ENDPOINT)))
+        return df_agg
     #DRAFT
     # def _get_col_dtype(col):
     # """

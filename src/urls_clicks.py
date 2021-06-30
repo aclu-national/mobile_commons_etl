@@ -31,6 +31,7 @@ INDEX_SET = {"tinyurls": "url_id"}
 
 RS_INCREMENTAL_KEYS = {"clicks": "created_at", "tinyurls": None}
 API_INCREMENTAL_KEYS = {"clicks": "from", "tinyurls": None}
+UP_TO = {"clicks": "to","tinyurls": None}
 
 ENDPOINT_KEY = {
     1: {"clicks": "clicks", "tinyurls": "tinyurls"},
@@ -50,6 +51,7 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
+IGNORE_INDEX_FILTER = True
 
 
 def main():
@@ -86,16 +88,16 @@ def main():
         )
 
         data = tap.ping_endpoint(**keywords)
-        template = pd.DataFrame(columns=tap.columns)
-        df = pd.concat([template, data], sort=True, join="inner")
+        # template = pd.DataFrame(columns=tap.columns)
+        # df = pd.concat([template, data], sort=True, join="inner")
+        #
+        # print(
+        #     "Loading data from endpoint {} into database...".format(
+        #         str.upper(index), flush=True, file=sys.stdout
+        #     )
+        # )
 
-        print(
-            "Loading data from endpoint {} into database...".format(
-                str.upper(index), flush=True, file=sys.stdout
-            )
-        )
-
-        tap.load(df, index)
+        #tap.load(df, index)
 
         indices = set(data["id"])
         index_results = []
@@ -115,13 +117,14 @@ def main():
                 extrakeys = {
                     "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT],
                     "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
+                    "up_to" : UP_TO[ENDPOINT],
                     INDEX_SET[index]: i,
                 }
 
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp()
+                subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
 
                 print(
                     "Kicking off extraction for endpoint {} TINYURL {}...".format(
@@ -148,7 +151,7 @@ def main():
 
                     if data is not None:
 
-                        df = pd.concat([template, data], sort=True, join="inner")
+                        df = pd.concat([template, data], sort=True, join="outer")
                         df[INDEX_SET[index]] = str(i)
                         index_results.append(df)
 
@@ -162,7 +165,7 @@ def main():
 
         if len(index_results) > 0:
 
-            all_results = pd.concat(index_results, sort=True, join="inner")
+            all_results = pd.concat(index_results, sort=True, join="outer")
 
             print(
                 "Loading data from endpoint {} into database...".format(
