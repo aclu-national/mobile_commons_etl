@@ -37,6 +37,7 @@ class columns:
         		"last_name" : "str",
         		"status" : "str",
         		"created_at" : "datetime64[ns, UTC]",
+                "updated_at": "datetime64[ns, UTC]",
         		"opted_out_at" : "datetime64[ns, UTC]",
         		"opted_out_source": "str",
         		"group_id": "float64"

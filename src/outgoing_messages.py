@@ -118,6 +118,7 @@ def main():
         # have to manually exclude the master campaign for outgoing messages endpoint bc it's too slow
         #indices = [str(ix) for ix in indices if str(ix) == "209901"]
         index_results = []
+        original_timestamp = None
 
         for i in indices:
 
@@ -141,7 +142,14 @@ def main():
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
+
+                if original_timestamp is None:
+                    original_timestamp = subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
+                    #passing the ignore_index_filter argument so that we can take
+                    #the max of activated_at from the all the campaign subscriber
+                    #records (not just for each campaign as it was doing before)
+                else:
+                    subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER,passed_last_timestamp=original_timestamp)
 
                 print(
                     "Kicking off extraction for endpoint {} CAMPAIGN {}...".format(
@@ -183,7 +191,7 @@ def main():
         # if len(index_results) > 0:
         #
         #     all_results = pd.concat(index_results, sort=True, join="inner")
-        # 
+        #
         #     print(
         #         "Loading data from endpoint {} into database...".format(
         #             str.upper(ENDPOINT), flush=True, file=sys.stdout

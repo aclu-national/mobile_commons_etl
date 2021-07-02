@@ -115,6 +115,7 @@ def main():
         indices = set(data["id"])
         #indices = [str(ix) for ix in indices if str(ix) == "212448"]
         index_results = []
+        original_timestamp = None
 
         for i in indices:
 
@@ -137,7 +138,14 @@ def main():
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
+
+                if original_timestamp is None:
+                    original_timestamp = subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
+                    #passing the ignore_index_filter argument so that we can take
+                    #the max of activated_at from the all the campaign subscriber
+                    #records (not just for each campaign as it was doing before)
+                else:
+                    subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER,passed_last_timestamp=original_timestamp)
 
                 print(
                     "Kicking off extraction for endpoint {} CAMPAIGN {}...".format(

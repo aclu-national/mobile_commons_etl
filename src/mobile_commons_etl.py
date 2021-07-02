@@ -165,7 +165,6 @@ class mobile_commons_connection:
     def parse_temp_and_load(self,res):
         endpoint_key_0 = self.endpoint_key[0][self.endpoint]
         endpoint_key_1 = self.endpoint_key[1][self.endpoint]
-
         res_list = []
 
         for r in res:
@@ -233,14 +232,14 @@ class mobile_commons_connection:
         ins = inspect(self.sql_engine)
 
         #if the table DNE then set 2020-10-01 as the date to start from
-        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers","sent_messages","messages","group_members","clicks"]):
+        if (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["campaign_subscribers","sent_messages","messages","clicks"]):
             first_record_sql = "select to_timestamp('2020-10-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
             date = pd.read_sql(first_record_sql, self.sql_engine)
             latest_date = self.parse_datetime(date,"latest_date")
             print(f"Grabbing records starting from {latest_date}.")
 
         #profiles has some profiles that were created in september
-        elif (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint =="profiles"):
+        elif (ins.has_table(f"{self.table_prefix}_{endpoint}",schema=self.schema) == False) & (self.endpoint in ["profiles","group_members"]):
             first_record_sql = "select to_timestamp('2020-09-01 00:00:00+00:00'::timestamp,'YYYY-MM-DD HH24:MI:SS TZ') as latest_date"
             date = pd.read_sql(first_record_sql, self.sql_engine)
             latest_date = self.parse_datetime(date,"latest_date")
@@ -290,8 +289,12 @@ class mobile_commons_connection:
         dateparser.parse(date).astimezone(utc).isoformat()
         return date
 
-    def fetch_latest_timestamp(self,ignore_index_filter=False):
+    def fetch_latest_timestamp(self,ignore_index_filter=False,passed_last_timestamp=None):
         """Handler for pulling latest record if incremental build"""
+
+        if passed_last_timestamp is not None:
+            self.last_timestamp = passed_last_timestamp
+            return self.last_timestamp
 
         if (not self.full_build) & (self.db_incremental_key is not None):
 
@@ -347,10 +350,7 @@ class mobile_commons_connection:
         )
 
         print(f"{resp.url}")
-
-        formatted_response = json.loads(json.dumps(xmltodict.parse(resp.text)))[
-            "response"
-        ][endpoint_key_1]
+        formatted_response = json.loads(json.dumps(xmltodict.parse(resp.text)))["response"][endpoint_key_1]
 
         ### Sina: 7/20/20 only broadcasts, messages, & sent_messages endpoints have page_count field this at this point in time
         if formatted_response.get("@page_count") is not None:
