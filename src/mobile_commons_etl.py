@@ -410,7 +410,7 @@ class mobile_commons_connection:
         """Loads to database"""
 
         mapper = {k: self.map_dtypes(v) for k, v in self.columns.items()}
-        #df = df.replace({None: np.nan})
+        df = df.replace({None: sqlalchemy.sql.null()})
         x = set(df.columns)
         y = set(self.columns.keys())
         final_cols = {i: self.columns[i] for i in x.intersection(y)}
