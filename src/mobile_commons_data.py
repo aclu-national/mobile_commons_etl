@@ -40,7 +40,8 @@ class columns:
                 "updated_at": "datetime64[ns, UTC]",
         		"opted_out_at" : "datetime64[ns, UTC]",
         		"opted_out_source": "str",
-        		"group_id": "float64"
+        		"group_id": "float64",
+                "source":"str"
         	},
 
         	"campaigns": {
