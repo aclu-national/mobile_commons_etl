@@ -195,6 +195,9 @@ class mobile_commons_connection:
         template = pd.DataFrame(columns=self.columns)
         df_agg_concat = pd.concat([template, df_agg], sort=True, join="outer")
 
+        if self.endpoint in ["campaign_subscribers","sent_messages","messages","clicks","group_members"]:
+            df_agg_concat[self.index] = str(self.index_id)
+
         if df_agg_concat is not None:
             print(
                 "Loading data from endpoint {} into database...".format(
