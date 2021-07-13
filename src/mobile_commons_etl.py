@@ -408,13 +408,13 @@ class mobile_commons_connection:
 
     def load(self, df, endpoint):
         """Loads to database"""
-
         mapper = {k: self.map_dtypes(v) for k, v in self.columns.items()}
-        df = df.replace({None: sqlalchemy.sql.null()})
         x = set(df.columns)
         y = set(self.columns.keys())
         final_cols = {i: self.columns[i] for i in x.intersection(y)}
         df = df.astype(final_cols)
+        df = df.replace({None: sqlalchemy.sql.null()})
+        df = df.replace({'None': sqlalchemy.sql.null()})
 
         if self.full_build:
 
