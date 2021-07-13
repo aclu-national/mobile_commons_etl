@@ -413,8 +413,7 @@ class mobile_commons_connection:
         y = set(self.columns.keys())
         final_cols = {i: self.columns[i] for i in x.intersection(y)}
         df = df.astype(final_cols)
-        df = df.replace({None: sqlalchemy.sql.null()})
-        df = df.replace({'None': sqlalchemy.sql.null()})
+        df = df.replace([None,'None','nan'], sqlalchemy.sql.null())
 
         if self.full_build:
 
