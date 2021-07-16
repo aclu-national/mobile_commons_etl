@@ -15,10 +15,10 @@ class columns:
         		"updated_at" : "datetime64[ns, UTC]",
         		"opted_out_at" : "datetime64[ns, UTC]",
         		"opted_out_source" : "str",
-            "source": "str",
-            "address" : "str",
-            "last_saved_districts" : "str",
-            "last_saved_location" : "str"
+                "source": "str",
+                "address" : "str",
+                "last_saved_districts" : "str",
+                "last_saved_location" : "str"
 
         	},
 
