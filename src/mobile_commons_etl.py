@@ -93,7 +93,7 @@ class mobile_commons_connection:
             params[self.api_incremental_key] = self.last_timestamp #from
             last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
             if self.endpoint == "group_members" :
-                up_to_date = last_timestamp_datetime + timedelta(days=15) #to
+                up_to_date = last_timestamp_datetime + timedelta(days=17) #to
             else:
                 up_to_date = last_timestamp_datetime + timedelta(days=30) #to
             params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
@@ -340,7 +340,7 @@ class mobile_commons_connection:
             params[self.api_incremental_key] = self.last_timestamp #from
             last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
             if self.endpoint == "group_members" :
-                up_to_date = last_timestamp_datetime + timedelta(days=15) #to
+                up_to_date = last_timestamp_datetime + timedelta(days=17) #to
             else:
                 up_to_date = last_timestamp_datetime + timedelta(days=30) #to
             params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
