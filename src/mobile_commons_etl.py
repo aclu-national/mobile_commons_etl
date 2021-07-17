@@ -92,10 +92,7 @@ class mobile_commons_connection:
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None) & (~self.full_build):
             params[self.api_incremental_key] = self.last_timestamp #from
             last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-            if self.endpoint == "group_members" :
-                up_to_date = last_timestamp_datetime + timedelta(days=24) #to
-            else:
-                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
+            up_to_date = last_timestamp_datetime + timedelta(days=30) #to
             params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
 
         if self.url_id is not None:
@@ -339,10 +336,7 @@ class mobile_commons_connection:
         if (self.api_incremental_key is not None) & (self.last_timestamp is not None):
             params[self.api_incremental_key] = self.last_timestamp #from
             last_timestamp_datetime = datetime.strptime(self.last_timestamp , '%Y-%m-%d %H:%M:%S%z')
-            if self.endpoint == "group_members" :
-                up_to_date = last_timestamp_datetime + timedelta(days=24) #to
-            else:
-                up_to_date = last_timestamp_datetime + timedelta(days=30) #to
+            up_to_date = last_timestamp_datetime + timedelta(days=30) #to
             params[self.up_to] = up_to_date.strftime('%Y-%m-%d %H:%M:%S%z')
 
         if self.group_id is not None:
