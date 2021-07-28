@@ -90,18 +90,6 @@ def main():
             )
 
             tap.ping_endpoint(**keywords)
-            # data =
-            # template = pd.DataFrame(columns=tap.columns)
-            #
-            # if data is not None:
-            #
-            #     df = pd.concat([template, data], sort=True, join="inner")
-            #     print(
-            #         "Loading data from endpoint {} into database...".format(
-            #             str.upper(ENDPOINT), flush=True, file=sys.stdout
-            #         )
-            #     )
-            #     tap.load(df, ENDPOINT)
 
         else:
 

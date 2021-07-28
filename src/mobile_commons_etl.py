@@ -12,7 +12,6 @@ import aiohttp
 import numpy as np
 import sqlalchemy
 import mobile_commons_data as mcd
-import pdb
 
 from sqlalchemy import create_engine
 from sqlalchemy import inspect
@@ -163,6 +162,7 @@ class mobile_commons_connection:
             return df_agg
 
     def parse_temp_and_load(self,res):
+        """ Dumps the results locally and then writes to the database. Called in func ping_endpoint. """
         endpoint_key_0 = self.endpoint_key[0][self.endpoint]
         endpoint_key_1 = self.endpoint_key[1][self.endpoint]
         res_list = []
@@ -211,7 +211,7 @@ class mobile_commons_connection:
         return df_agg
 
     def get_latest_record(self, endpoint,ignore_index_filter=False):
-        """Pulls the latest record from the database to use for incremental updates"""
+        """Pulls the latest record from the database to use for incremental updates with conditional logic for diff calls."""
 
         table = f"{self.schema}.{self.table_prefix}_{endpoint}"
 
@@ -293,7 +293,7 @@ class mobile_commons_connection:
         return date
 
     def fetch_latest_timestamp(self,ignore_index_filter=False,passed_last_timestamp=None):
-        """Handler for pulling latest record if incremental build"""
+        """Handler for pulling latest record if incremental build. We've changed the script so that it is always incremental."""
 
         if passed_last_timestamp is not None:
             self.last_timestamp = passed_last_timestamp
@@ -371,7 +371,7 @@ class mobile_commons_connection:
         return num_results
 
     def get_page_count(self, **kwargs):
-        """Binary search to find page count for an endpoint if page count data isn't available so we can parallelize downstream"""
+        """Binary search to find page count for an endpoint IF page count data isn't available so we can parallelize downstream"""
 
         guess = math.floor((self.min_pages + self.max_pages) / 2)
         diff = self.max_pages - self.min_pages

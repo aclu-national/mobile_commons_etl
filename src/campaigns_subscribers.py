@@ -97,20 +97,9 @@ def main():
         #if page count is greater than 500, it will find break up the total # of pages into chunks & make the calls a chunk at a time.
         #so if there are 1858 pages & it calculates that 4 chunks us ideal then the overall partition will look like [1, 620, 1239, 1859].
         #calls on get_page which makes the async calls & attempts retries if necessary
-        # template = pd.DataFrame(columns=tap.columns)
-        # df = pd.concat([template, data], sort=True, join="inner")
-        #
-        # print(
-        #     "Loading data from endpoint {} into database...".format(
-        #         str.upper(index), flush=True, file=sys.stdout
-        #     )
-        # )
-        #
-        # tap.load(df, index)
 
         indices = set(data["id"])
-        #indices = [str(ix) for ix in indices if str(ix) == "211038"]
-        #and str(ix) != "210789"]
+        #indices = [str(ix) for ix in indices if str(ix) == "211038"] #you can use this to filter out individual campaign ids when testing
         index_results = []
         original_timestamp = None
 
@@ -167,15 +156,6 @@ def main():
                     )
 
                     subtap.ping_endpoint(**keywords)
-                    # data=
-                    # template = pd.DataFrame(columns=subtap.columns)
-                    #
-                    # if data is not None:
-                    #
-                    #     df = pd.concat([template, data], sort=True, join="inner")
-                    #     df[INDEX_SET[index]] = str(i)
-                    #     index_results.append(df)
-
                 else:
 
                     print(
@@ -183,27 +163,6 @@ def main():
                             str.upper(ENDPOINT), i
                         )
                     )
-        # if len(index_results) > 0:
-        #
-        #     all_results = pd.concat(index_results, sort=True, join="inner")
-        #
-        #     print(
-        #         "Loading data from endpoint {} into database...".format(
-        #             str.upper(ENDPOINT), flush=True, file=sys.stdout
-        #         )
-        #     )
-        #
-        #     subtap.load(all_results, ENDPOINT)
-        #
-        # else:
-        #
-        #     print(
-        #         "No new data from endpoint {}. ".format(
-        #             str.upper(ENDPOINT), flush=True, file=sys.stdout
-        #         )
-        #     )
-        #
-
 
 if __name__ == "__main__":
 

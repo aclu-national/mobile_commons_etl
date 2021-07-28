@@ -89,7 +89,7 @@ def main():
             "schema": SCHEMA,
             "table_prefix": TABLE_PREFIX,
             "db_incremental_key": RS_INCREMENTAL_KEYS[index],
-            #"include_profile":INCLUDE_PROFILE,
+            #"include_profile":INCLUDE_PROFILE, #we could bring in profile information, but thats why we have the profiles script
             "include_opt_in_paths":INCLUDE_OPT_IN_PATHS,
         }
 
@@ -104,19 +104,8 @@ def main():
         )
 
         data = tap.ping_endpoint(**keywords)
-        # template = pd.DataFrame(columns=tap.columns)
-        # df = pd.concat([template, data], sort=True, join="inner")
-        #
-        # print(
-        #     "Loading data from endpoint {} into database...".format(
-        #         str.upper(index), flush=True, file=sys.stdout
-        #     )
-        # )
-        #
-        # tap.load(df, index)
         indices = set(data["id"])
-        # have to manually exclude the master campaign for outgoing messages endpoint bc it's too slow
-        #indices = [str(ix) for ix in indices if str(ix) == "209901"]
+        #indices = [str(ix) for ix in indices if str(ix) == "209901"] #you can use this to filter out individual campaign ids when testing
         index_results = []
         original_timestamp = None
 
@@ -172,13 +161,6 @@ def main():
                     )
 
                     subtap.ping_endpoint(**keywords)
-                    # template = pd.DataFrame(columns=subtap.columns)
-                    #
-                    # if data is not None:
-                    #
-                    #     df = pd.concat([template, data], sort=True, join="outer")
-                    #     df[INDEX_SET[index]] = str(i)
-                    #     index_results.append(df)
 
                 else:
 
@@ -187,27 +169,6 @@ def main():
                             str.upper(ENDPOINT), i
                         )
                     )
-
-        # if len(index_results) > 0:
-        #
-        #     all_results = pd.concat(index_results, sort=True, join="inner")
-        #
-        #     print(
-        #         "Loading data from endpoint {} into database...".format(
-        #             str.upper(ENDPOINT), flush=True, file=sys.stdout
-        #         )
-        #     )
-        #
-        #     subtap.load(all_results, ENDPOINT)
-        #
-        # else:
-        #
-        #     print(
-        #         "No new data from endpoint {}. ".format(
-        #             str.upper(ENDPOINT), flush=True, file=sys.stdout
-        #         )
-        #     )
-
 
 if __name__ == "__main__":
 
