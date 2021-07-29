@@ -74,7 +74,7 @@ class mobile_commons_connection:
             pool_pre_ping=True
         )
 
-    async def get_page(self, page, retries=5, **kwargs):
+    async def get_page(self, page, retries=10, **kwargs):
         """Base asynchronous request function"""
 
         if self.endpoint == "campaigns":
