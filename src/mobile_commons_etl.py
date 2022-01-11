@@ -16,7 +16,7 @@ import mobile_commons_data as mcd
 from sqlalchemy import create_engine
 from sqlalchemy import inspect
 
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 
 from datetime import timedelta
 from datetime import datetime
@@ -74,7 +74,7 @@ class mobile_commons_connection:
             pool_pre_ping=True
         )
 
-    async def get_page(self, page, retries=10, **kwargs):
+    async def get_page(self, page, retries=3, **kwargs):
         """Base asynchronous request function"""
 
         if self.endpoint == "campaigns":
@@ -124,7 +124,7 @@ class mobile_commons_connection:
             except aiohttp.ClientError:
                 print(f"Retrying {page}...")
                 attempts += 1
-                await asyncio.sleep(1)
+                await asyncio.sleep(60)
 
     def ping_endpoint(self, **kwargs):
         """Wrapper for asynchronous calls that then have results collated into a dataframe"""
