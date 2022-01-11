@@ -16,7 +16,7 @@ import mobile_commons_data as mcd
 from sqlalchemy import create_engine
 from sqlalchemy import inspect
 
-from pandas import json_normalize
+from pandas.io.json import json_normalize
 
 from datetime import timedelta
 from datetime import datetime
