@@ -15,10 +15,10 @@ class columns:
         		"updated_at" : "datetime64[ns, UTC]",
         		"opted_out_at" : "datetime64[ns, UTC]",
         		"opted_out_source" : "str",
-            "source": "str",
-            "address" : "str",
-            "last_saved_districts" : "str",
-            "last_saved_location" : "str"
+                "source": "str",
+                "address" : "str",
+                "last_saved_districts" : "str",
+                "last_saved_location" : "str"
 
         	},
 
@@ -37,9 +37,11 @@ class columns:
         		"last_name" : "str",
         		"status" : "str",
         		"created_at" : "datetime64[ns, UTC]",
+                "updated_at": "datetime64[ns, UTC]",
         		"opted_out_at" : "datetime64[ns, UTC]",
         		"opted_out_source": "str",
-        		"group_id": "float64"
+        		"group_id": "float64",
+                "source":"str"
         	},
 
         	"campaigns": {
@@ -47,7 +49,8 @@ class columns:
         		"name" : "str",
         		"active" : "bool",
         		"description" : "str" ,
-        		"tags" : "str"
+        		"tags" : "str",
+                "opt_in_paths":"str"
         	},
 
         	"campaign_subscribers": {
@@ -91,7 +94,7 @@ class columns:
         		"next_id" : "str",
         		"phone_number" : "str",
         		"previous_id" : "str",
-        		"profile" : "float64",
+        		"profile" : "str",
         		"sent_at" : "datetime64[ns, UTC]"
         	},
 

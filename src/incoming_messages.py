@@ -41,6 +41,8 @@ API_INCREMENTAL_KEYS = {
     "messages": "start_time",
 }
 
+UP_TO = {"messages": "end_time"}
+
 ENDPOINT_KEY = {
     1: {"campaigns": "campaigns", "sent_messages": "messages", "messages": "messages"},
     0: {"campaigns": "campaign", "sent_messages": "message", "messages": "message"},
@@ -59,11 +61,10 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
+INCLUDE_OPT_IN_PATHS = 1
+IGNORE_INDEX_FILTER = True
 
 def main():
-
-    # SENT_MESSAGES endpoint is very slow, found a quicker workaround that
-    # involves querying sent messages for each campaign  instead
 
     for index in INDEX_SET.keys():
 
@@ -84,6 +85,7 @@ def main():
             "schema": SCHEMA,
             "table_prefix": TABLE_PREFIX,
             "db_incremental_key": RS_INCREMENTAL_KEYS[index],
+            "include_opt_in_paths":INCLUDE_OPT_IN_PATHS,
         }
 
         tap = mc.mobile_commons_connection(index, full_build, **keywords)
@@ -97,18 +99,10 @@ def main():
         )
 
         data = tap.ping_endpoint(**keywords)
-        template = pd.DataFrame(columns=tap.columns)
-        df = pd.concat([template, data], sort=True, join="inner")
-
-        print(
-            "Loading data from endpoint {} into database...".format(
-                str.upper(index), flush=True, file=sys.stdout
-            )
-        )
-
-        tap.load(df, index)
         indices = set(data["id"])
+        #indices = [str(ix) for ix in indices if str(ix) == "212448"] #you can use this to filter out individual campaign ids when testing
         index_results = []
+        original_timestamp = None
 
         for i in indices:
 
@@ -125,12 +119,20 @@ def main():
                 extrakeys = {
                     "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT],
                     "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
+                    "up_to" : UP_TO[ENDPOINT],
                     INDEX_SET[index]: i,
                 }
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp()
+
+                if original_timestamp is None:
+                    original_timestamp = subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
+                    #passing the ignore_index_filter argument so that we can take
+                    #the max of activated_at from the all the campaign subscriber
+                    #records (not just for each campaign as it was doing before)
+                else:
+                    subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER,passed_last_timestamp=original_timestamp)
 
                 print(
                     "Kicking off extraction for endpoint {} CAMPAIGN {}...".format(
@@ -152,14 +154,7 @@ def main():
                         )
                     )
 
-                    data = subtap.ping_endpoint(**keywords)
-                    template = pd.DataFrame(columns=subtap.columns)
-
-                    if data is not None:
-
-                        df = pd.concat([template, data], sort=True, join="inner")
-                        df[INDEX_SET[index]] = str(i)
-                        index_results.append(df)
+                    subtap.ping_endpoint(**keywords)
 
                 else:
 
@@ -168,27 +163,6 @@ def main():
                             str.upper(ENDPOINT), i
                         )
                     )
-
-        if len(index_results) > 0:
-
-            all_results = pd.concat(index_results, sort=True, join="inner")
-
-            print(
-                "Loading data from endpoint {} into database...".format(
-                    str.upper(ENDPOINT), flush=True, file=sys.stdout
-                )
-            )
-
-            subtap.load(all_results, ENDPOINT)
-
-        else:
-
-            print(
-                "No new data from endpoint {}. ".format(
-                    str.upper(ENDPOINT), flush=True, file=sys.stdout
-                )
-            )
-
 
 if __name__ == "__main__":
 

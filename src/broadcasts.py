@@ -87,23 +87,7 @@ def main():
 
         if tap.page_count > 0:
 
-            data = tap.ping_endpoint(**keywords)
-            template = pd.DataFrame(columns=tap.columns)
-
-            if data is not None:
-
-                df = pd.concat([template, data], sort=True, join="inner")
-                print(
-                    "Loading data from endpoint {} into database...".format(
-                        str.upper(ENDPOINT), flush=True, file=sys.stdout
-                    )
-                )
-                tap.load(df, ENDPOINT)
-
-        else:
-
-            print("No new results to load for endpoint {}".format(str.upper(ENDPOINT)))
-
+            tap.ping_endpoint(**keywords)
 
 if __name__ == "__main__":
 

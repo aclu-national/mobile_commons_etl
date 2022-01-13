@@ -29,7 +29,14 @@ ALL_ENDPOINTS = ["campaign_subscribers"]
 INDEX_SET = {"campaigns": "campaign_id"}
 
 RS_INCREMENTAL_KEYS = {"campaign_subscribers": "activated_at", "campaigns": None}
+#RS_INCREMENTAL_KEYS is "activated_at" which is the timestamp used by campaign_subscribers to determine from when we should increment
+#then it is passed into sql that queries the table within the func get_latest_record. Within that same function we did handling to to take the max of both activated_at & opted_out at since the
+#call prioritizes opted_out_at before activated_at
+#Then the returned result is passed into the handler fetch_latest_timestamp
 API_INCREMENTAL_KEYS = {"campaign_subscribers": "from", "campaigns": None}
+#then within get_page API_INCREMENTAL_KEYS is set equal to the latest timestamp which is whats returned from fetch_latest_timestamp
+#and it becomes the from parameter that is passed when making the api call in get_page
+UP_TO = {"campaign_subscribers": "to"}
 
 ENDPOINT_KEY = {
     1: {"campaigns": "campaigns", "campaign_subscribers": "subscriptions"},
@@ -49,7 +56,8 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
-
+INCLUDE_OPT_IN_PATHS = 1
+IGNORE_INDEX_FILTER = True
 
 def main():
 
@@ -72,11 +80,12 @@ def main():
             "table_prefix": TABLE_PREFIX,
             "auth": AUTH,
             "db_incremental_key": RS_INCREMENTAL_KEYS[index],
+            "include_opt_in_paths":INCLUDE_OPT_IN_PATHS,
         }
 
         tap = mc.mobile_commons_connection(index, full_build, **keywords)
-        tap.fetch_latest_timestamp()
-        tap.page_count = tap.page_count_get(**keywords, page=MIN_PAGES)
+        tap.fetch_latest_timestamp() #result: gets the latest timestamp in RS for this call
+        tap.page_count = tap.page_count_get(**keywords, page=MIN_PAGES) #makes a call to see how many pages there are and returns the value
 
         print(
             "Kicking off extraction for endpoint {}...".format(str.upper(index)),
@@ -85,21 +94,14 @@ def main():
         )
 
         data = tap.ping_endpoint(**keywords)
-        template = pd.DataFrame(columns=tap.columns)
-        df = pd.concat([template, data], sort=True, join="inner")
-
-        print(
-            "Loading data from endpoint {} into database...".format(
-                str.upper(index), flush=True, file=sys.stdout
-            )
-        )
-
-        tap.load(df, index)
+        #if page count is greater than 500, it will find break up the total # of pages into chunks & make the calls a chunk at a time.
+        #so if there are 1858 pages & it calculates that 4 chunks us ideal then the overall partition will look like [1, 620, 1239, 1859].
+        #calls on get_page which makes the async calls & attempts retries if necessary
 
         indices = set(data["id"])
-        # have to manually exclude the master campaign for outgoing messages endpoint bc it's too damn slow
-        indices = [str(ix) for ix in indices if str(ix) != "209901" and str(ix) != "210789"]
+        #indices = [str(ix) for ix in indices if str(ix) == "211038"] #you can use this to filter out individual campaign ids when testing
         index_results = []
+        original_timestamp = None
 
         for i in indices:
 
@@ -114,15 +116,24 @@ def main():
                     full_build = False
 
                 extrakeys = {
-                    "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT],
-                    "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
-                    INDEX_SET[index]: i,
+                    "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT], #from
+                    "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT], #activated_at
+                    "up_to" : UP_TO[ENDPOINT],
+                    INDEX_SET[index]: i
                 }
 
-                subkeywords = keywords.update(extrakeys)
+                keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp()
+
+                if original_timestamp is None:
+                    original_timestamp = subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
+                    #passing the ignore_index_filter argument so that we can take
+                    #the max of activated_at from the all the campaign subscriber
+                    #records (not just for each campaign as it was doing before)
+                else:
+                    subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER,passed_last_timestamp=original_timestamp)
+
 
                 print(
                     "Kicking off extraction for endpoint {} CAMPAIGN {}...".format(
@@ -144,15 +155,7 @@ def main():
                         )
                     )
 
-                    data = subtap.ping_endpoint(**keywords)
-                    template = pd.DataFrame(columns=subtap.columns)
-
-                    if data is not None:
-
-                        df = pd.concat([template, data], sort=True, join="inner")
-                        df[INDEX_SET[index]] = str(i)
-                        index_results.append(df)
-
+                    subtap.ping_endpoint(**keywords)
                 else:
 
                     print(
@@ -160,27 +163,6 @@ def main():
                             str.upper(ENDPOINT), i
                         )
                     )
-        if len(index_results) > 0:
-
-            all_results = pd.concat(index_results, sort=True, join="inner")
-
-            print(
-                "Loading data from endpoint {} into database...".format(
-                    str.upper(ENDPOINT), flush=True, file=sys.stdout
-                )
-            )
-
-            subtap.load(all_results, ENDPOINT)
-
-        else:
-
-            print(
-                "No new data from endpoint {}. ".format(
-                    str.upper(ENDPOINT), flush=True, file=sys.stdout
-                )
-            )
-
-
 
 if __name__ == "__main__":
 

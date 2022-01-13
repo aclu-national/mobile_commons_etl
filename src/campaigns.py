@@ -44,6 +44,7 @@ retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
+INCLUDE_OPT_IN_PATHS = 1
 
 
 def main():
@@ -67,6 +68,7 @@ def main():
             "schema": SCHEMA,
             "table_prefix": TABLE_PREFIX,
             "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
+            "include_opt_in_paths":INCLUDE_OPT_IN_PATHS,
         }
 
         tap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
@@ -87,18 +89,7 @@ def main():
                 )
             )
 
-            data = tap.ping_endpoint(**keywords)
-            template = pd.DataFrame(columns=tap.columns)
-
-            if data is not None:
-
-                df = pd.concat([template, data], sort=True, join="inner")
-                print(
-                    "Loading data from endpoint {} into database...".format(
-                        str.upper(ENDPOINT), flush=True, file=sys.stdout
-                    )
-                )
-                tap.load(df, ENDPOINT)
+            tap.ping_endpoint(**keywords)
 
         else:
 

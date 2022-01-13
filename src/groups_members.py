@@ -31,7 +31,7 @@ INDEX_SET = {"groups": "group_id"}
 
 RS_INCREMENTAL_KEYS = {"group_members": "updated_at", "groups": None}
 API_INCREMENTAL_KEYS = {"group_members": "from", "groups": None}
-
+UP_TO = {"group_members": "to"}
 ENDPOINT_KEY = {
     1: {"groups": "groups", "group_members": "group"},
     0: {"groups": "group", "group_members": "profile"},
@@ -45,12 +45,12 @@ AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 # Mobile Commons API allows up to 160 concurrent connections but they asked us to reduce to 80 for now
 SEMAPHORE = asyncio.BoundedSemaphore(80)
 
-retries = Retry(total=3, status_forcelist=[429, 500, 502, 503, 504], backoff_factor=1)
+retries = Retry(total=10, status_forcelist=[429, 500, 502, 503, 504], backoff_factor=1)
 retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
 http.mount("https://secure.mcommons.com/api/", retry_adapter)
-
+IGNORE_INDEX_FILTER = True
 
 def main():
 
@@ -86,19 +86,10 @@ def main():
         )
 
         data = tap.ping_endpoint(**keywords)
-        template = pd.DataFrame(columns=tap.columns)
-        df = pd.concat([template, data], sort=True, join="inner")
-
-        print(
-            "Loading data from endpoint {} into database...".format(
-                str.upper(index), flush=True, file=sys.stdout
-            )
-        )
-
-        tap.load(df, index)
-
         indices = set(data["id"])
+        #indices = [str(ix) for ix in indices if str(ix) == "758460"] #you can use this to filter out individual group ids when testing
         index_results = []
+        original_timestamp = None
 
         for i in indices:
 
@@ -115,13 +106,21 @@ def main():
                 extrakeys = {
                     "api_incremental_key": API_INCREMENTAL_KEYS[ENDPOINT],
                     "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
+                    "up_to" : UP_TO[ENDPOINT],
                     INDEX_SET[index]: i,
                 }
 
                 keywords.update(extrakeys)
                 subtap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
                 subtap.index = INDEX_SET[index]
-                subtap.fetch_latest_timestamp()
+
+                if original_timestamp is None:
+                    original_timestamp = subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER)
+                    #passing the ignore_index_filter argument so that we can take
+                    #the max of activated_at from the all the campaign subscriber
+                    #records (not just for each campaign as it was doing before)
+                else:
+                    subtap.fetch_latest_timestamp(ignore_index_filter = IGNORE_INDEX_FILTER,passed_last_timestamp=original_timestamp)
 
                 print(
                     "Kicking off extraction for endpoint {} GROUP {}...".format(
@@ -143,14 +142,7 @@ def main():
                         )
                     )
 
-                    data = subtap.ping_endpoint(**keywords)
-                    template = pd.DataFrame(columns=subtap.columns)
-
-                    if data is not None:
-
-                        df = pd.concat([template, data], sort=True, join="inner")
-                        df[INDEX_SET[index]] = str(i)
-                        index_results.append(df)
+                    subtap.ping_endpoint(**keywords)
 
                 else:
 
@@ -159,27 +151,6 @@ def main():
                             str.upper(ENDPOINT), i
                         )
                     )
-
-        if len(index_results) > 0:
-
-            all_results = pd.concat(index_results, sort=True, join="inner")
-
-            print(
-                "Loading data from endpoint {} into database...".format(
-                    str.upper(ENDPOINT), flush=True, file=sys.stdout
-                )
-            )
-
-            subtap.load(all_results, ENDPOINT)
-
-        else:
-
-            print(
-                "No new data from endpoint {}. ".format(
-                    str.upper(ENDPOINT), flush=True, file=sys.stdout
-                )
-            )
-
 
 if __name__ == "__main__":
 

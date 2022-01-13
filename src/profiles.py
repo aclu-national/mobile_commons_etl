@@ -30,6 +30,7 @@ ALL_ENDPOINTS = ["profiles"]
 
 RS_INCREMENTAL_KEYS = {"profiles": "updated_at"}
 API_INCREMENTAL_KEYS = {"profiles": "from"}
+UP_TO = {"profiles": "to"}
 ENDPOINT_KEY = {1: {"profiles": "profiles"}, 0: {"profiles": "profile"}}
 MIN_PAGES = 1
 MAX_PAGES = 20000
@@ -73,6 +74,7 @@ def main():
             "schema": SCHEMA,
             "table_prefix": TABLE_PREFIX,
             "db_incremental_key": RS_INCREMENTAL_KEYS[ENDPOINT],
+            "up_to" : UP_TO[ENDPOINT],
         }
 
         tap = mc.mobile_commons_connection(ENDPOINT, full_build, **keywords)
@@ -92,27 +94,11 @@ def main():
 
             print(
                 "There are {} pages in the result set for endpoint {}".format(
-                    page_count, str.upper(ENDPOINT)
+                    tap.page_count, str.upper(ENDPOINT)
                 )
             )
 
-            data = tap.ping_endpoint(**keywords)
-            template = pd.DataFrame(columns=tap.columns)
-
-            if data is not None:
-
-                df = pd.concat([template, data], sort=True, join="inner")
-                print(
-                    "Loading data from endpoint {} into database...".format(
-                        str.upper(ENDPOINT), flush=True, file=sys.stdout
-                    )
-                )
-                tap.load(df, ENDPOINT)
-
-        else:
-
-            print("No new results to load for endpoint {}".format(str.upper(ENDPOINT)))
-
+            tap.ping_endpoint(**keywords)
 
 if __name__ == "__main__":
 
