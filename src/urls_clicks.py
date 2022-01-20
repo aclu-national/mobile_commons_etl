@@ -46,7 +46,7 @@ AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 # Mobile Commons API allows up to 160 concurrent connections but they asked us to reduce to 80 for now
 SEMAPHORE = asyncio.BoundedSemaphore(80)
 
-retries = Retry(total=3, status_forcelist=[429, 500, 502, 503, 504], backoff_factor=1)
+retries = Retry(total=4, status_forcelist=[429, 500, 502, 503, 504], backoff_factor=2)
 retry_adapter = HTTPAdapter(max_retries=retries)
 
 http = requests.Session()
