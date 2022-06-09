@@ -12,11 +12,12 @@ import aiohttp
 import numpy as np
 import sqlalchemy
 import mobile_commons_data as mcd
+import requests
 
 from sqlalchemy import create_engine
 from sqlalchemy import inspect
 
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 
 from datetime import timedelta
 from datetime import datetime
@@ -109,7 +110,7 @@ class mobile_commons_connection:
         attempts = 1
         data = None
 
-        while data is None or attempts <= retries:
+        while data is None and attempts <= retries:
 
             try:
                 async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
@@ -148,15 +149,33 @@ class mobile_commons_connection:
         res = []
 
         for b in range(1, len(breaks)):
-
-            temp = loop.run_until_complete(
-                asyncio.gather(
-                    *(
-                        self.get_page(page, **kwargs)
-                        for page in range(breaks[b - 1], breaks[b])
+            if self.endpoint != "broadcasts":
+                temp = loop.run_until_complete(
+                    asyncio.gather(
+                        *(
+                            self.get_page(page, **kwargs)
+                            for page in range(breaks[b - 1], breaks[b])
+                        )
                     )
                 )
-            )
+            elif self.endpoint == "broadcasts":
+                temp = []
+
+                # request first page before loop to retrieve page count
+                first_page = 1
+                first_url = self.base + self.endpoint + "?page=" + str(first_page) + "&limit=20"
+                first_resp = requests.get(first_url, auth=(self.user, self.pw))
+                json_xml = json.loads(json.dumps(xmltodict.parse(first_resp.content)))
+                page_count = int(json_xml["response"]["broadcasts"]["@page_count"])
+                print(f"requesting page {first_page} of {page_count}, status code {first_resp.status_code}...")
+                temp.append(first_resp.text)
+
+                # loops through the rest of the pages
+                for page in range(2, page_count + 1):
+                    url = self.base + self.endpoint + "?page=" + str(page) + "&limit=20"
+                    resp = requests.get(url, auth=(self.user, self.pw))
+                    print(f"requesting page {page} of {page_count}, status code {resp.status_code}...")
+                    temp.append(resp.text)
 
             df_agg = self.parse_temp_and_load(temp)
             return df_agg
@@ -352,7 +371,7 @@ class mobile_commons_connection:
             self.base + self.endpoint, auth=(self.user, self.pw), params=params
         )
 
-        print(f"{resp.url}")
+        #print(f"{resp.url}")
         formatted_response = json.loads(json.dumps(xmltodict.parse(resp.text)))["response"][endpoint_key_1]
 
         ### Sina: 7/20/20 only broadcasts, messages, & sent_messages endpoints have page_count field this at this point in time
