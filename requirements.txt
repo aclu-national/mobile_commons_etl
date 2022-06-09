@@ -1,0 +1,8 @@
+aiohttp==3.8.1
+dateparser==1.1.1
+numpy==1.22.4
+pandas==1.4.2
+pytz==2022.1
+requests==2.27.1
+SQLAlchemy==1.4.37
+xmltodict==0.13.0
