@@ -38,7 +38,7 @@ ENDPOINT_KEY = {
 
 MIN_PAGES = 1
 MAX_PAGES = 20000
-LIMIT = 1000
+LIMIT = 20
 AUTH = aiohttp.BasicAuth(MC_USER, password=MC_PWD)
 
 # Mobile Commons API allows up to 160 concurrent connections but they asked us to reduce to 80 for now
